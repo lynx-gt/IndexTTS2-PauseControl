@@ -155,6 +155,11 @@ Full details, parameter calibration and accuracy data:
 
 ## Known limitations
 
+- **Marks right before a period often hit a weak pause** (no ≥30ms true
+  silence core); the "nearest core" strategy then targets the adjacent real
+  pause (the period boundary) — measured 838ms for an 800ms target (slightly
+  off-position, correct to the ear); if no silence exists in the window the
+  operation is refused (rather than cutting speech)
 - The model may naturally insert a breath after a long pause; breaths have
   higher energy than silence and are not detected/edited (natural prosody —
   use post-processing denoise to remove if needed)
