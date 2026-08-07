@@ -19,6 +19,11 @@ After synthesis, the pause between "停下脚步" and "深吸一口气" is 800ms
 the pause after "深吸一口气" is 200ms — measured average deviation 13ms.
 **Period pauses are controllable too.**
 
+The model may occasionally pause inconsistently — missing a pause where one is
+expected, or pausing where there is no punctuation. Marks are not limited to
+punctuation positions: a pause of a specified duration can be inserted at any
+position, including places without punctuation.
+
 No model changes, no retraining — install the nodes and use them.
 
 ## Installation
