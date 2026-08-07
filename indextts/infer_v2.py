@@ -885,12 +885,19 @@ class IndexTTS2:
                     # 已被 after 标记设置的间隙优先（after 语义更明确），不覆盖。
                     if tail_cands is not None and seg_idx in tail_cands:
                         t_ms, midx = tail_cands[seg_idx]
-                        if midx < len(assign) and (assign[midx] >= 0 or midx in inserted_ok):
+                        hit = midx < len(assign) and (assign[midx] >= 0 or midx in inserted_ok)
+                        if hit:
                             if seg_idx not in seg_breaks:
                                 seg_breaks[seg_idx] = 0
-                        else:
+                        elif seg_idx < segments_count - 1:
                             if seg_idx not in seg_breaks:
                                 seg_breaks[seg_idx] = t_ms
+                        else:
+                            # 最后一段段尾未命中：音频末尾追加目标时长静音
+                            # （最后一段无段间可补，句号后停顿 = 末尾停顿）
+                            wav = torch.cat([wav, torch.zeros(
+                                wav.size(0), int(sampling_rate * t_ms / 1000.0),
+                                device=wav.device)], dim=1)
                     for line in ops_log:
                         print(f">> [pause] {line}")
                     print(f">> [pause] 检测停顿{len(pauses_raw)}个 assign={assign} insert={inserted} skip={skipped}")
@@ -999,9 +1006,10 @@ class IndexTTS2:
                         seg_breaks[si - 1] = ms
                         break
                     out[si].append((off, b - a, ms, _side))
-                    if _side == "before" and off == b - a - 2 and si < len(segments) - 1:
-                        # 段尾 before 标记（后跟段尾句号）：登记段尾候选，
-                        # 命中判定在生成循环里做（需等段内对齐结果）
+                    if off >= b - a - 3:
+                        # 段尾标记（后跟句号/句号+引号等段尾标点，含 none 型）：
+                        # 登记段尾候选——段内命中则段间跳过，未命中则段间补时长
+                        # （最后一段在音频末尾追加）。命中判定在生成循环里做。
                         tail_cands[si] = (ms, len(out[si]) - 1)
                     break
             else:
