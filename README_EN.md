@@ -10,14 +10,19 @@ No whisper, no re-decoding — pure waveform-domain processing.
 
 ## Features
 
+The core purpose of this project: **millisecond-precise pause control
+(`[pause:N]`) for IndexTTS2** — specify a pause duration at any punctuation
+and the synthesized audio is edited to match exactly (measured: 20 entries,
+40 marks, average deviation 13ms, max 32ms).
+
 > **Terminology**: a **segment** is a sentence-final-punctuation split unit
 > (official `split_sentences` output, code variable `segments`); a **script
 > entry** is one `# 片段 N` item of the Markdown script (one batch unit, one
 > wav; one entry may contain multiple segments — pauses between them are
 > inter-segment silence).
 
-- **`[pause:N]` precise pauses**: extend / shrink / insert pauses at any
-  punctuation — **in-sentence and around periods, uniformly supported**:
+- **`[pause:N]` precise pauses**: in-sentence and around periods, uniformly
+  supported:
   - In-sentence marks (comma, enumeration comma): waveform-domain editing
     in-segment (±20ms)
   - Mark *before* a period (`…[pause:N]。`): segment-tail pause — edited
@@ -40,11 +45,18 @@ No whisper, no re-decoding — pure waveform-domain processing.
 - **Waveform-domain pipeline**: marks → comma for the LLM → energy-based pause
   detection → Needleman-Wunsch global alignment (affine gap + asymmetric
   pricing + time hard-limit) → silent-core waveform editing (no re-decoding)
+
+### Additional workflow features added for practical use
+
+Capabilities added on top of precise pause control for real batch production
+(none available in the official code):
+
 - **Batch generation + candidate listening + acceptance marking**: manifest
   resume, per-round candidates, one-click "accept round N" writing to manifest
 - **Seed fixing/reproducibility**: a fixed seed reproduces the same synthesis
-  exactly (not available in the official code); otherwise the actual seed is
-  recorded to a `.seed` file automatically
+  exactly; otherwise the actual seed is recorded to a `.seed` file automatically
+- **Markdown script support**: script entries (one sentence per entry)
+  or plain multi-line text
 - **Finalization + SRT subtitles**: pick the accepted round per entry and
   generate subtitles from real wav durations (`IndexTTSSrt`)
 - **Pause fixing**: adjust/remove pauses on generated audio by
@@ -53,8 +65,6 @@ No whisper, no re-decoding — pure waveform-domain processing.
   (`IndexTTSUnload`)
 - **Frontend dynamic dropdowns**: task dirs / entry numbers / reference audio
   auto-enumerated, no manual path typing
-- **Markdown script support**: script entries (one sentence per entry)
-  or plain multi-line text
 
 ## Installation
 
