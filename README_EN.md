@@ -132,8 +132,10 @@ Regenerate with your own reference via
 ### Suggested text organization
 
 Split the script into **one sentence per segment** (period at segment end);
-pauses between sentences are controlled at concatenation time. Use
-`[pause:N]` for intra-sentence precision.
+pauses between sentences default to concatenation-time control (inter-segment
+silence). Where a precise period pause is needed, override it with a mark:
+`句子[pause:800ms]。` (before the period) or `句子。[pause:800ms]` (after
+the period) — both are precise.
 
 
 
