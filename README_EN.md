@@ -10,6 +10,12 @@ No whisper, no re-decoding — pure waveform-domain processing.
 
 ## Features
 
+> **Terminology**: a **segment** is a sentence-final-punctuation split unit
+> (official `split_sentences` output, code variable `segments`); a **script
+> entry** is one `# 片段 N` item of the Markdown script (one batch unit, one
+> wav; one entry may contain multiple segments — pauses between them are
+> inter-segment silence).
+
 - **`[pause:N]` precise pauses**: extend / shrink / insert pauses at any
   punctuation — **in-sentence and around periods, uniformly supported**:
   - In-sentence marks (comma, enumeration comma): waveform-domain editing
@@ -36,7 +42,7 @@ No whisper, no re-decoding — pure waveform-domain processing.
   pricing + time hard-limit) → silent-core waveform editing (no re-decoding)
 - **Batch generation + candidate listening + acceptance marking**: manifest
   resume, per-round candidates, one-click "accept round N" writing to manifest
-- **Segmented script support**: Markdown scripts (one sentence per segment)
+- **Markdown script support**: script entries (one sentence per entry)
   or plain multi-line text
 
 ## Installation
@@ -150,7 +156,7 @@ Regenerate with your own reference via
 
 ### Suggested text organization
 
-- Split the script into **one sentence per segment**; period pauses are
+- Split the script into **one sentence per entry**; period pauses are
   uniformly controlled by inter-segment silence (`interval_silence`)
 - For a precise period pause, write a mark: `句子[pause:800ms]。` (before the
   period) or `句子。[pause:800ms]` (after the period) — both are precise
