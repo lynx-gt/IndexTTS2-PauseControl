@@ -154,6 +154,41 @@ Regenerate with your own reference via
 | IndexTTSListen | `task_dir` | Connect to batch node's task_dir output (takes priority) |
 | IndexTTSListen | `accept_round` | Acceptance mark: 0=listen only; 1/2/3=mark that round accepted (written to manifest.json) |
 
+### Markdown script format
+
+`segments_md` accepts a Markdown script file (fill the path in the
+`IndexTTSBatch` node's `segments_md` field):
+
+```markdown
+---
+story: My story
+voice_ref: references/my-voice/main.wav
+emotion_base: references/movie-dubbing
+emotions: [calm, tense]
+speaking_speed: 1.0
+max_text_tokens_per_segment: 120
+---
+
+# 片段 001 [narrator / calm]
+<!-- 标题: 标准同样严苛 -->
+标准同样严苛[pause:800ms]不多一分。
+
+<!-- 处理后: 标准同样严苛[pause:800ms]不多一分。 -->
+```
+
+- **YAML header** (optional metadata): story / voice_ref / emotion_base /
+  emotions / speaking_speed / max_text_tokens_per_segment
+- **Entry title**: `# 片段 N [role / emotion]` — N is the entry index;
+  `[role / emotion]` is used for emotion-reference selection (the
+  "random per directory" strategy picks from the emotion subdirectory)
+- **Body**: the text to synthesize, `[pause:N]` marks kept as-is; if
+  `<!-- 处理后: ... -->` is present, its content takes priority (the body
+  can be a display draft, the processed content goes to synthesis)
+- **One sentence per entry is recommended** (period pauses are uniformly
+  controlled by inter-segment silence)
+- Without a script file, you can write plain text in the `text` field
+  (one line = one entry)
+
 ### Suggested text organization
 
 - Split the script into **one sentence per entry**; period pauses are

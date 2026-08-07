@@ -129,6 +129,34 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 | IndexTTSListen | `task_dir` | 接收批量节点的 task_dir 输出（连线优先） |
 | IndexTTSListen | `accept_round` | 验收标记：0=仅试听；1/2/3=标记第 N 轮通过（写入 manifest.json） |
 
+### 分句稿格式（Markdown）
+
+`segments_md` 接受分句稿 Markdown 文件（`IndexTTSBatch` 节点的 `segments_md` 填路径），格式：
+
+```markdown
+---
+story: 我的故事
+voice_ref: references/我的音色/main.wav
+emotion_base: references/译制片语气
+emotions: [平静, 紧张]
+speaking_speed: 1.0
+max_text_tokens_per_segment: 120
+---
+
+# 片段 001 [叙述 / 平静]
+<!-- 标题: 标准同样严苛 -->
+标准同样严苛[pause:800ms]不多一分。
+
+<!-- 处理后: 标准同样严苛[pause:800ms]不多一分。 -->
+```
+
+- **YAML 头**（可选元信息）：story / voice_ref / emotion_base / emotions / speaking_speed / max_text_tokens_per_segment
+- **片段标题**：`# 片段 N [角色 / 情绪]`——N 为片段序号，`[角色 / 情绪]` 用于情感参考选择（"目录随机"策略按情绪子目录挑选）
+- **正文**：即生成文本，`[pause:N]` 标记原样保留；若提供 `<!-- 处理后: ... -->`，
+  以其内容为准（正文可作展示稿，处理后内容送生成）
+- **建议一句一个片段**（句号停顿由分句间静音统一控制）
+- 不填分句稿时，可直接在 `text` 输入框按行写文本（每行 = 一个片段）
+
 ### 建议的文本组织方式
 
 - 分句稿按**一句一个片段**切分；句号处停顿由分句间静音统一控制（`interval_silence`）
