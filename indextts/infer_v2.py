@@ -692,7 +692,7 @@ class IndexTTS2:
                                                   merge_sentences=False)
         segments_count = len(segments)
         if pause_marks:
-            seg_marks_all, seg_breaks, tail_cands = self._distribute_pause_marks(pause_marks, segments)
+            seg_marks_all, seg_breaks, tail_cands = self._distribute_pause_marks(pause_marks, segments, text)
         if verbose:
             print("text_tokens_list:", text_tokens_list)
             print("segments count:", segments_count)
@@ -971,7 +971,7 @@ class IndexTTS2:
         """
         return len(tok) - (1 if tok.startswith("▁") else 0)
 
-    def _distribute_pause_marks(self, marks, segments):
+    def _distribute_pause_marks(self, marks, segments, clean_text):
         """把 [pause:] 标记分配到 (segment_idx, 段内字符偏移, 段字符数, ms, side)。
 
         标记位置与段范围同为 clean 字符坐标（_clean_len 累计），直接按
@@ -1006,10 +1006,12 @@ class IndexTTS2:
                         seg_breaks[si - 1] = ms
                         break
                     out[si].append((off, b - a, ms, _side))
-                    if off >= b - a - 3:
-                        # 段尾标记（后跟句号/句号+引号等段尾标点，含 none 型）：
-                        # 登记段尾候选——段内命中则段间跳过，未命中则段间补时长
-                        # （最后一段在音频末尾追加）。命中判定在生成循环里做。
+                    # 段尾判定：标记在段尾 3 字符内，且标记后到段尾全是标点
+                    # （句号 / 句号+引号 等）——排除"X[pause:N]Y。"（标记后还有内容）
+                    if off >= b - a - 3 and all(
+                            c in "。！？…'\"，,;:、…" for c in clean_text[char_pos + 1:b]):
+                        # 段尾标记：登记段尾候选——段内命中则段间跳过，未命中则
+                        # 段间补时长（最后一段在音频末尾追加）。命中判定在生成循环里做。
                         tail_cands[si] = (ms, len(out[si]) - 1)
                     break
             else:
