@@ -27,10 +27,14 @@ No whisper, no re-decoding — pure waveform-domain processing.
    (keep the directory name `IndexTTS2-PauseControl`; back up any existing
    same-name directory first — it will be overwritten)
 2. Install dependencies into ComfyUI's Python environment (see `requirements.txt`)
-3. Download the IndexTTS2 model weights to `ComfyUI/models/index_tts/`
+3. Run `python install.py` (auto-installs dependencies and checks the model
+   directory), or install manually per `requirements.txt`
+4. Download the IndexTTS2 model weights to `ComfyUI/models/index_tts/`
    (weights are NOT part of this repo — see official
    [index-tts/index-tts](https://github.com/index-tts/index-tts))
-4. Restart ComfyUI
+5. Restart ComfyUI
+
+> Also installable via **ComfyUI-Manager** (search `IndexTTS2-PauseControl`).
 
 ### Option 2: Patch (for users who already have official indextts code)
 

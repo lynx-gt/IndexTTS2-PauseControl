@@ -23,9 +23,12 @@ IndexTTS2 精确停顿控制（`[pause:N]`）ComfyUI 节点包。
    目录名保持 `IndexTTS2-PauseControl`
    （⚠️ 如已存在同名目录请先备份——覆盖会替换旧内容）
 2. 安装依赖到 ComfyUI 的 Python 环境（见 `requirements.txt`）
-3. 下载 IndexTTS2 模型权重到 `ComfyUI/models/index_tts/`
+3. 运行 `python install.py`（自动装依赖 + 检查模型目录），或手动按 `requirements.txt` 安装
+4. 下载 IndexTTS2 模型权重到 `ComfyUI/models/index_tts/`
    （模型来源见官方 [index-tts/index-tts](https://github.com/index-tts/index-tts)，权重不属于本仓库）
-4. 重启 ComfyUI
+5. 重启 ComfyUI
+
+> 也支持 **ComfyUI-Manager** 一键安装（搜索 `IndexTTS2-PauseControl`）。
 
 ### 方式二：打补丁（已有官方 indextts 包的用户）
 
