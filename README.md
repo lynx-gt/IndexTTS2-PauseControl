@@ -1,5 +1,8 @@
 # IndexTTS2-PauseControl
 
+<p align="center"><img src="assets/banner.png" alt="IndexTTS2-PauseControl" width="100%"></p>
+
+
 IndexTTS2 精确停顿控制（`[pause:N]`）ComfyUI 节点包。
 
 > **English**: [README_EN.md](README_EN.md)
