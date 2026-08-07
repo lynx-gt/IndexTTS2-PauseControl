@@ -82,7 +82,7 @@ def main():
         print("   当前在 %s" % node_dir)
         print("   请把本仓库目录移动到 custom_nodes/ 下再运行本脚本")
         sys.exit(1)
-    print("✔ 节点位置正确")
+    print("[OK] 节点位置正确")
 
     # 2. 安装依赖
     py = find_python(comfyui)
@@ -90,9 +90,14 @@ def main():
     print("== 安装依赖 ==")
     for pkg in REQUIRED_TOP:
         run([py, "-m", "pip", "install", pkg])
-    print("== 可选依赖（descript-audiotools 等，缺省时部分功能不可用）==")
+    print("== 可选依赖（缺省时部分功能不可用）==")
+    # descript-audiotools 必须 --no-deps：其依赖约束（protobuf<3.20 等）会降级破坏
+    # 用户环境（实测教训：protobuf 5.x→3.19、tensorboard 2.21→2.20）。其真正需要的
+    # 小依赖（flatten_dict/julius/argbind/markdown2/randomname/pystoi）单独安装。
+    run([py, "-m", "pip", "install", "--no-deps", "descript-audiotools"])
     for pkg in OPTIONAL_TOP:
-        run([py, "-m", "pip", "install", pkg])
+        if pkg != "descript-audiotools":
+            run([py, "-m", "pip", "install", pkg])
 
     # 3. 检查模型
     model_dir = os.path.join(comfyui, "models", MODEL_DIR_NAME)
@@ -102,7 +107,7 @@ def main():
             print("!! 模型目录存在但缺少文件:", ", ".join(missing))
             print("   请补齐模型（见 README / 官方 index-tts 仓库下载指引）")
         else:
-            print("✔ 模型文件齐全")
+            print("[OK] 模型文件齐全")
     else:
         print("!! 未找到模型目录: %s" % model_dir)
         print("   模型权重（约 11.8GB）需从官方渠道下载：")

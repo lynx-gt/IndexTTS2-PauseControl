@@ -498,7 +498,7 @@ class IndexTTSListen:
             logs.append(f"提示：该段还有第 {'/'.join(map(str, extra))} 轮候选，Listen 仅显示前 3 轮（可把 accept_round 之外的部分用文件方式试听）")
         if accept_map:
             logs.append("验收状态: " + " ".join(
-                f"轮{rnd}={'✓已通过' if accept_map.get(rnd) else '未验收'}" for rnd in (1, 2, 3)))
+                f"轮{rnd}={'√已通过' if accept_map.get(rnd) else '未验收'}" for rnd in (1, 2, 3)))
         if accept_round > 0:
             logs.append(f"→ 段{idx} 第{accept_round}轮已标记验收通过（已写入 manifest.json）")
         return (*outs, "\n".join(logs))
