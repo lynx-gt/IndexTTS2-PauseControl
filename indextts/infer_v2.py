@@ -404,26 +404,27 @@ class IndexTTS2:
         sil_dur = int(sampling_rate * interval_silence / 1000.0)
         return torch.zeros(channel_size, sil_dur)
 
-    def insert_interval_silence(self, wavs, sampling_rate=22050, interval_silence=200):
+    def insert_interval_silence(self, wavs, sampling_rate=22050, interval_silence=200, seg_breaks=None):
         """
         Insert silences between generated segments.
         wavs: List[torch.tensor]
+        seg_breaks: {间隙索引: 时长ms}——句号后标记指定的段间停顿，覆盖 interval_silence
         """
-
-        if not wavs or interval_silence <= 0:
+        if not wavs:
+            return wavs
+        if interval_silence <= 0 and not seg_breaks:
             return wavs
 
         # get channel_size
         channel_size = wavs[0].size(0)
-        # get silence tensor
-        sil_dur = int(sampling_rate * interval_silence / 1000.0)
-        sil_tensor = torch.zeros(channel_size, sil_dur)
 
         wavs_list = []
         for i, wav in enumerate(wavs):
             wavs_list.append(wav)
             if i < len(wavs) - 1:
-                wavs_list.append(sil_tensor)
+                dur_ms = seg_breaks.get(i, interval_silence) if seg_breaks else interval_silence
+                sil_dur = int(sampling_rate * dur_ms / 1000.0)
+                wavs_list.append(torch.zeros(channel_size, sil_dur))
 
         return wavs_list
 
@@ -677,6 +678,7 @@ class IndexTTS2:
 
         self._set_gr_progress(0.1, "text processing...")
         seg_marks_all = None
+        seg_breaks = None
         if pause_mode:
             from indextts.utils import pause_control
             text, pause_marks = pause_control.parse_pause_marks(text)
@@ -687,7 +689,7 @@ class IndexTTS2:
         segments = self.tokenizer.split_sentences(text_tokens_list, max_text_tokens_per_segment)
         segments_count = len(segments)
         if pause_marks:
-            seg_marks_all = self._distribute_pause_marks(pause_marks, text_tokens_list, segments)
+            seg_marks_all, seg_breaks = self._distribute_pause_marks(pause_marks, text_tokens_list, segments)
         if verbose:
             print("text_tokens_list:", text_tokens_list)
             print("segments count:", segments_count)
@@ -906,7 +908,8 @@ class IndexTTS2:
         end_time = time.perf_counter()
 
         self._set_gr_progress(0.9, "saving audio...")
-        wavs = self.insert_interval_silence(wavs, sampling_rate=sampling_rate, interval_silence=interval_silence)
+        wavs = self.insert_interval_silence(wavs, sampling_rate=sampling_rate,
+                                            interval_silence=interval_silence, seg_breaks=seg_breaks)
         wav = torch.cat(wavs, dim=1)
         wav_length = wav.shape[-1] / sampling_rate
         print(f">> gpt_gen_time: {gpt_gen_time:.2f} seconds")
@@ -940,9 +943,14 @@ class IndexTTS2:
         """把 [pause:] 标记分配到 (segment_idx, 段内字符偏移, 段字符数, ms, side)。
 
         基于 token 字符串长度累计定位（中文字符 = token，长度精确）。
-        返回段内偏移与段字符数——marks_pos 用段内比例（段内偏移/段字符数
-        × 本段时长）计算预期位置；用全局比例在分句后会漂移（跨段标记偏差
-        可达 1s+，超出 NW 时间硬上限导致静默失效）。
+        返回 (out, seg_breaks)：
+          out[si]：段内处理的标记，元组为 (段内偏移, 段字符数, ms, side)——
+                   marks_pos 用段内比例（段内偏移/段字符数 × 本段时长）计算
+                   预期位置；用全局比例在分句后会漂移（跨段标记偏差可达
+                   1s+，超出 NW 时间硬上限导致静默失效）。
+          seg_breaks：{间隙索引: 时长ms}——句号后标记（after）落在段首的，
+                   归为段间停顿（分句按句号切段，句号留前段、标记进下段段首），
+                   由拼接层把该间隙静音改为目标时长，段内不处理。
         """
         tok_offsets = []
         acc = 0
@@ -955,12 +963,17 @@ class IndexTTS2:
             seg_ranges.append((acc, acc + len(seg)))
             acc += len(seg)
         out = [[] for _ in segments]
+        seg_breaks = {}
         for char_pos, ms, _side in marks:
             ti = 0
             while ti < len(tok_offsets) - 1 and tok_offsets[ti + 1] <= char_pos:
                 ti += 1
             for si, (a, b) in enumerate(seg_ranges):
                 if a <= ti < b:
+                    if _side == "after" and char_pos - a == 0 and si > 0:
+                        # 句号后标记且分句后落在段首：该停顿属于段间（句号切段所致）
+                        seg_breaks[si - 1] = ms
+                        break
                     out[si].append((char_pos - a, b - a, ms, _side))
                     break
             else:
@@ -968,7 +981,7 @@ class IndexTTS2:
                 if segments:
                     a, b = seg_ranges[-1]
                     out[-1].append((b - a, b - a, ms, _side))
-        return out
+        return out, seg_breaks
 
     def _s2mel_wav(self, latent, codes, code_lens, diffusion_steps, inference_cfg_rate,
                    speaking_speed, prompt_condition, ref_mel, style):
