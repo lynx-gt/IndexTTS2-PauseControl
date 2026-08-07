@@ -679,6 +679,7 @@ class IndexTTS2:
         self._set_gr_progress(0.1, "text processing...")
         seg_marks_all = None
         seg_breaks = None
+        tail_cands = None
         if pause_mode:
             from indextts.utils import pause_control
             text, pause_marks = pause_control.parse_pause_marks(text)
@@ -689,7 +690,7 @@ class IndexTTS2:
         segments = self.tokenizer.split_sentences(text_tokens_list, max_text_tokens_per_segment)
         segments_count = len(segments)
         if pause_marks:
-            seg_marks_all, seg_breaks = self._distribute_pause_marks(pause_marks, text_tokens_list, segments)
+            seg_marks_all, seg_breaks, tail_cands = self._distribute_pause_marks(pause_marks, text_tokens_list, segments)
         if verbose:
             print("text_tokens_list:", text_tokens_list)
             print("segments count:", segments_count)
@@ -857,6 +858,7 @@ class IndexTTS2:
                                 ops.append((mid_s, "ext", target, sel, f"标记{i}: 延长 {d:.0f}→{target}ms"))
                             else:
                                 ops.append((mid_s, "shr", target, sel, f"标记{i}: 缩短 {d:.0f}→{target}ms"))
+                    inserted_ok = set()  # 插入成功的标记下标
                     for i in inserted:
                         t_center = marks_pos[i][0]
                         t_valley, e_valley = pause_control.find_energy_valley(wav_np, t_center, sampling_rate)
@@ -868,6 +870,7 @@ class IndexTTS2:
                         sel = "nearest" if marks_pos[i][2] == "before" else "longest"
                         ops.append((t_valley, "ext", marks_pos[i][1], sel,
                                     f"标记{i}: 插入 {marks_pos[i][1]}ms（能量谷{t_valley:.2f}s）"))
+                        inserted_ok.add(i)
                     for pos, kind, target, sel, desc in sorted(ops, key=lambda o: o[0], reverse=True):
                         if kind == "ext":
                             wav_np = pause_control.wav_extend_pause(wav_np, pos, target, sampling_rate, select=sel)
@@ -875,6 +878,17 @@ class IndexTTS2:
                             wav_np = pause_control.wav_shrink_pause(wav_np, pos, target, sampling_rate, select=sel)
                         ops_log.append(desc)
                     wav = torch.from_numpy(wav_np).unsqueeze(0).to(wav_det.device)
+                    # 段尾 before 标记联动：段内命中（匹配或插入成功）→ 该段间跳过
+                    # （防叠加：段内已调到目标）；未命中 → 段间补目标时长。
+                    # 已被 after 标记设置的间隙优先（after 语义更明确），不覆盖。
+                    if tail_cands is not None and seg_idx in tail_cands:
+                        t_ms, midx = tail_cands[seg_idx]
+                        if midx < len(assign) and (assign[midx] >= 0 or midx in inserted_ok):
+                            if seg_idx not in seg_breaks:
+                                seg_breaks[seg_idx] = 0
+                        else:
+                            if seg_idx not in seg_breaks:
+                                seg_breaks[seg_idx] = t_ms
                     for line in ops_log:
                         print(f">> [pause] {line}")
                     print(f">> [pause] 检测停顿{len(pauses_raw)}个 assign={assign} insert={inserted} skip={skipped}")
@@ -943,7 +957,7 @@ class IndexTTS2:
         """把 [pause:] 标记分配到 (segment_idx, 段内字符偏移, 段字符数, ms, side)。
 
         基于 token 字符串长度累计定位（中文字符 = token，长度精确）。
-        返回 (out, seg_breaks)：
+        返回 (out, seg_breaks, tail_cands)：
           out[si]：段内处理的标记，元组为 (段内偏移, 段字符数, ms, side)——
                    marks_pos 用段内比例（段内偏移/段字符数 × 本段时长）计算
                    预期位置；用全局比例在分句后会漂移（跨段标记偏差可达
@@ -951,6 +965,9 @@ class IndexTTS2:
           seg_breaks：{间隙索引: 时长ms}——句号后标记（after）落在段首的，
                    归为段间停顿（分句按句号切段，句号留前段、标记进下段段首），
                    由拼接层把该间隙静音改为目标时长，段内不处理。
+          tail_cands：{段索引: (目标ms, out[si]下标)}——段尾 before 标记
+                   （标记后紧跟段尾句号）段内照常尝试调整；命中（匹配或插入
+                   成功）则段间跳过，未命中则段间补目标时长（见生成循环）。
         """
         tok_offsets = []
         acc = 0
@@ -964,24 +981,30 @@ class IndexTTS2:
             acc += len(seg)
         out = [[] for _ in segments]
         seg_breaks = {}
+        tail_cands = {}
         for char_pos, ms, _side in marks:
             ti = 0
             while ti < len(tok_offsets) - 1 and tok_offsets[ti + 1] <= char_pos:
                 ti += 1
             for si, (a, b) in enumerate(seg_ranges):
                 if a <= ti < b:
-                    if _side == "after" and char_pos - a == 0 and si > 0:
+                    off = char_pos - a
+                    if _side == "after" and off == 0 and si > 0:
                         # 句号后标记且分句后落在段首：该停顿属于段间（句号切段所致）
                         seg_breaks[si - 1] = ms
                         break
-                    out[si].append((char_pos - a, b - a, ms, _side))
+                    out[si].append((off, b - a, ms, _side))
+                    if _side == "before" and off == b - a - 2 and si < len(segments) - 1:
+                        # 段尾 before 标记（后跟段尾句号）：登记段尾候选，
+                        # 命中判定在生成循环里做（需等段内对齐结果）
+                        tail_cands[si] = (ms, len(out[si]) - 1)
                     break
             else:
                 # 越界（标记贴近段尾）：挂到最后一段末位
                 if segments:
                     a, b = seg_ranges[-1]
                     out[-1].append((b - a, b - a, ms, _side))
-        return out, seg_breaks
+        return out, seg_breaks, tail_cands
 
     def _s2mel_wav(self, latent, codes, code_lens, diffusion_steps, inference_cfg_rate,
                    speaking_speed, prompt_condition, ref_mel, style):
