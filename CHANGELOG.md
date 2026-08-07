@@ -18,12 +18,15 @@
 - `IndexTTSListen` 新增 `task_dir` 连线输入与 `accept_round` 验收标记
   （写入任务 manifest.json）
 - 批量生成 manifest 断点续跑、分句稿（一句一段）/多行文本两种输入
-- 文档：方案说明（docs/PAUSE_CONTROL.md）、双语 README、补丁说明（patch/）
+- 一键安装：`install.py`（跨平台：依赖安装 + 模型检查），支持 ComfyUI-Manager 安装
+- 文档：方案说明（docs/PAUSE_CONTROL.md，含核心原理与文献引用）、双语 README、补丁说明（patch/）
 
 ### Changed
 
 - `interval_silence` 默认值 200 → 400ms（段间固定停顿）
 - 分句稿切分策略改为「一句一段」（句号在段尾，`[pause:N]` 写在句号前）
+- 明确 `[pause:N]` 支持时长范围：推荐 150ms ~ 5s（下限≈100ms，上限无硬限制）
+- 明确标记统一替换为全角中文逗号（，），中英文场景均精确
 
 ### Deprecated
 
