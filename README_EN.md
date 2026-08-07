@@ -94,6 +94,13 @@ Reference voice: a third-party collected voice (not the author's own voice).
 Regenerate with your own reference via
 `examples/make_compare_demo.py --model-dir <models> --spk-ref <ref audio>`.
 
+**Waveform comparison** (click a waveform to download and listen):
+
+| Chinese | English |
+|---------|---------|
+| [![zh_plain waveform](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain (no pause) | [![en_plain waveform](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain (no pause) |
+| [![zh_pause waveform](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause (with pause) | [![en_pause waveform](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause (with pause) |
+
 ### Node parameters
 
 | Node | Parameter | Description |
@@ -113,12 +120,6 @@ pauses between sentences are controlled at concatenation time. Use
 `[pause:N]` for intra-sentence precision.
 
 
-**Waveform comparison** (click a waveform to download and listen):
-
-| Chinese | English |
-|---------|---------|
-| [![zh_plain waveform](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain (no pause) | [![en_plain waveform](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain (no pause) |
-| [![zh_pause waveform](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause (with pause) | [![en_pause waveform](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause (with pause) |
 
 ## How it works (brief)
 

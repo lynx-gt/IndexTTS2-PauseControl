@@ -84,6 +84,13 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 `examples/make_compare_demo.py` 配合你自己的参考音频重新生成：
 `python examples/make_compare_demo.py --model-dir <模型路径> --spk-ref <参考音频>`。
 
+**波形对比**（点击波形图下载音频试听）：
+
+| 中文 | 英文 |
+|------|------|
+| [![zh_plain 波形](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain（无 pause） | [![en_plain 波形](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain（无 pause） |
+| [![zh_pause 波形](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause（有 pause） | [![en_pause 波形](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause（有 pause） |
+
 ### 节点参数
 
 | 节点 | 参数 | 说明 |
@@ -102,12 +109,6 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 段内（句内）精确停顿用 `[pause:N]`，句号停顿留给拼接时插入静音。
 
 
-**波形对比**（点击波形图下载音频试听）：
-
-| 中文 | 英文 |
-|------|------|
-| [![zh_plain 波形](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain（无 pause） | [![en_plain 波形](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain（无 pause） |
-| [![zh_pause 波形](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause（有 pause） | [![en_pause 波形](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause（有 pause） |
 
 ## 工作原理（简述）
 
