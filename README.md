@@ -101,6 +101,14 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 分句稿按**一句一段**切分（句号在段尾），句与句之间的停顿在拼接阶段统一控制：
 段内（句内）精确停顿用 `[pause:N]`，句号停顿留给拼接时插入静音。
 
+
+**直接试听**（波形视频，点击播放）：
+
+| 中文 | 英文 |
+|------|------|
+| <video controls width="360" src="examples/audio/zh_plain.mp4"></video><br>zh_plain（无 pause） | <video controls width="360" src="examples/audio/en_plain.mp4"></video><br>en_plain（无 pause） |
+| <video controls width="360" src="examples/audio/zh_pause.mp4"></video><br>zh_pause（有 pause） | <video controls width="360" src="examples/audio/en_pause.mp4"></video><br>en_pause（有 pause） |
+
 ## 工作原理（简述）
 
 1. `[pause:N]` 标记 → 替换为逗号 → 模型正常生成（模型自然停顿时长与目标无关）

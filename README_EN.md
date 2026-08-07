@@ -112,6 +112,14 @@ Split the script into **one sentence per segment** (period at segment end);
 pauses between sentences are controlled at concatenation time. Use
 `[pause:N]` for intra-sentence precision.
 
+
+**Listen directly** (waveform videos, click to play):
+
+| Chinese | English |
+|---------|---------|
+| <video controls width="360" src="examples/audio/zh_plain.mp4"></video><br>zh_plain (no pause) | <video controls width="360" src="examples/audio/en_plain.mp4"></video><br>en_plain (no pause) |
+| <video controls width="360" src="examples/audio/zh_pause.mp4"></video><br>zh_pause (with pause) | <video controls width="360" src="examples/audio/en_pause.mp4"></video><br>en_pause (with pause) |
+
 ## How it works (brief)
 
 1. `[pause:N]` marks → commas → normal synthesis (model's natural pause
