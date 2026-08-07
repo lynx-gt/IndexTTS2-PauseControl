@@ -687,7 +687,9 @@ class IndexTTS2:
         else:
             pause_marks = []
         text_tokens_list = self.tokenizer.tokenize(text)
-        segments = self.tokenizer.split_sentences(text_tokens_list, max_text_tokens_per_segment)
+        # 不合并短句：句号=段界（段间停顿控制依赖句号切段，见 _distribute_pause_marks）
+        segments = self.tokenizer.split_sentences(text_tokens_list, max_text_tokens_per_segment,
+                                                  merge_sentences=False)
         segments_count = len(segments)
         if pause_marks:
             seg_marks_all, seg_breaks, tail_cands = self._distribute_pause_marks(pause_marks, text_tokens_list, segments)
