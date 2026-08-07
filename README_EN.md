@@ -189,6 +189,28 @@ max_text_tokens_per_segment: 120
 - Without a script file, you can write plain text in the `text` field
   (one line = one entry)
 
+### Batch output
+
+`IndexTTSBatch` produces a **task directory** (`output/{tag}_{timestamp}/`,
+or a custom `output_dir`):
+
+```
+output/batch_20260807_120000/
+├── 001_1.wav        entry 1, round 1 candidate
+├── 001_1.wav.seed   seed of that round (reproducible with fixed seed)
+├── 001_2.wav / 001_2.wav.seed
+├── 001_3.wav / 001_3.wav.seed
+├── 002_1.wav …      three round candidates of entry 2
+└── manifest.json    task params + per-entry/round seed, duration, acceptance
+                     marks (resume basis)
+```
+
+- Naming: `{entry:03d}_{round}.wav` (`001_1` = entry 1, round 1)
+- Listen to candidates with the `IndexTTSListen` node; `accept_round` marks
+  "round N accepted" (written to manifest.json for downstream concatenation)
+- Re-running the same task directory resumes (finished rounds are skipped;
+  parameter changes trigger a full re-run)
+
 ### Suggested text organization
 
 - Split the script into **one sentence per entry**; period pauses are
