@@ -59,6 +59,11 @@ Accepted forms: `[pause:600ms]` / `[pause:600]` / `[pause:1.5s]` / `[pause:0.8s]
 (`[wait:]` and `[stop:]` prefixes are also accepted). Marks are replaced by a
 **full-width Chinese comma (，)** before synthesis.
 
+**Duration range**: recommended **150ms – 5s**. Lower bound ≈100ms (energy
+detection minimum; <150ms measures slightly high including weak tails);
+no hard upper bound (silence insertion in the waveform domain — 1s/2s/5s all
+work; >5s is rarely useful).
+
 **Chinese and English both work**: marks are always replaced with a Chinese
 comma; English sentences are verified to work precisely as well (800ms target
 → 778ms measured) — the model treats the comma as a pause marker regardless
