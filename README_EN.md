@@ -11,6 +11,10 @@ No whisper, no re-decoding — pure waveform-domain processing.
 
 - **`[pause:N]` precise pauses**: extend / shrink / insert pauses at any
   punctuation (comma, period, etc.)
+- **No segment splitting**: the whole segment is synthesized in one pass and
+  pauses are edited directly on the result — no need to split sentences and
+  re-synthesize per part, **avoiding the prosody/tone artifacts that come
+  with split-based approaches**
 - **Waveform-domain pipeline**: marks → comma for the LLM → energy-based pause
   detection → Needleman-Wunsch global alignment (affine gap + asymmetric
   pricing + time hard-limit) → silent-core waveform editing (no re-decoding)
