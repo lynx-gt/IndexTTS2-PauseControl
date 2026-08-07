@@ -67,7 +67,11 @@ def parse_pause_marks(text):
     """解析 [pause:Nms] / [pause:N] / [pause:Ns] 标记。
     返回 (clean_text, marks)：
       clean_text：标记替换为逗号后的文本（喂给 LLM 生成）
-      marks：[(标记在 clean_text 中的字符位置, 目标时长ms)]（按文本顺序）
+      marks：[(标记在 clean_text 中的字符位置, 目标时长ms, 标点环境)]
+        标点环境 period_side：'before'=标记紧邻句号前（标记后是句末标点）
+                            'after' =标记紧邻句号后（标记前是句末标点）
+                            'none'  =普通标记（逗号/顿号等）
+        ——两套核心定位策略：句号前走 nearest，其余走 longest（2026-08-07 标记级分流）
     """
     clean_parts = []
     marks = []
@@ -77,7 +81,15 @@ def parse_pause_marks(text):
         num = float(m.group(1))
         unit = m.group(2)
         ms = int(num * 1000) if unit == "s" else int(num)
-        marks.append((len("".join(clean_parts)), ms))  # 逗号位置 = 插入点
+        # 标点环境：检查原文本中标记前后的字符
+        side = "none"
+        nxt = text[m.end():m.end() + 1]
+        prv = text[max(0, m.start() - 1):m.start()]
+        if nxt in "。！？…":
+            side = "before"   # 标记在句号前
+        elif prv in "。！？…":
+            side = "after"    # 标记在句号后
+        marks.append((len("".join(clean_parts)), ms, side))
         clean_parts.append("，")
         pos = m.end()
     clean_parts.append(text[pos:])
@@ -301,15 +313,21 @@ def silence_codes_extra(n):
 # 6. 波形级操作（缩短/延长，wav 域精确定位，无 codes 映射误差）
 # ---------------------------------------------------------------------------
 
-def find_core_region(wav_np, center_s, sr=22050, strict_mult=5.0, min_core_ms=30, window_s=0.6):
-    """在 center_s ± window_s 窗口内找严格静音核心区（能量 < thr×strict_mult 的最长连续段）。
+def find_core_region(wav_np, center_s, sr=22050, strict_mult=5.0, min_core_ms=30, window_s=0.6,
+                     select="longest"):
+    """在 center_s ± window_s 窗口内找严格静音核心区（能量 < thr×strict_mult）。
     返回 (core_start_s, core_end_s)；找不到返回 None。
+    select 策略（2026-08-07 标记级分流）：
+      'longest'：窗口内最长连续核心（默认，验证版行为；普通标记/句号后使用）
+      'nearest'：离 center 最近的核心（句号前标记使用——窗口内多停顿时
+                 保证延长作用在标记对应的停顿上）
     """
     frame = int(DETECT_FRAME_MS / 1000.0 * sr)
     thr_strict = DETECT_THRESHOLD * strict_mult
     lo = max(0, int((center_s - window_s) * sr))
     hi = min(len(wav_np) - frame, int((center_s + window_s) * sr))
-    best = (0, lo, lo)
+    # 收集窗口内所有严格静音段
+    segs = []
     cur = None
     for f in range(lo, hi, frame):
         e = float((wav_np[f:f + frame] ** 2).sum()) / frame
@@ -318,21 +336,36 @@ def find_core_region(wav_np, center_s, sr=22050, strict_mult=5.0, min_core_ms=30
                 cur = f
         else:
             if cur is not None:
-                if f - cur > best[0]:
-                    best = (f - cur, cur, f)
+                segs.append((cur, f))
                 cur = None
-    if cur is not None and hi - cur > best[0]:
-        best = (hi - cur, cur, hi)
-    if best[0] >= int(min_core_ms / 1000.0 * sr):
-        return best[1] / sr, best[2] / sr
+    if cur is not None:
+        segs.append((cur, hi))
+    if not segs:
+        return None
+    if select == "nearest":
+        # 句号前标记：优先离 center 最近且 ≥min_core 的段；无则最近任意段
+        cands = [s for s in segs if s[1] - s[0] >= int(min_core_ms / 1000.0 * sr)]
+        pool = cands if cands else segs
+        b2, d2 = None, None
+        for a, b in pool:
+            dd = abs((a + b) / 2.0 - center_s * sr)
+            if d2 is None or dd < d2:
+                d2, b2 = dd, (a, b)
+        if b2 is not None:
+            return b2[0] / sr, b2[1] / sr
+        return None
+    # longest（默认，验证版行为）
+    best = max(segs, key=lambda s: s[1] - s[0])
+    if best[1] - best[0] >= int(min_core_ms / 1000.0 * sr):
+        return best[0] / sr, best[1] / sr
     return None
 
 
-def wav_shrink_pause(wav_np, center_s, target_ms, sr=22050, margin_ms=15):
+def wav_shrink_pause(wav_np, center_s, target_ms, sr=22050, margin_ms=15, select="longest"):
     """波形级缩短：静音核心裁剪到 target_ms（核心两端各留 margin_ms 缓冲防切字）。
     核心已短于目标时不动。返回新 wav（numpy 数组）。
     """
-    core = find_core_region(wav_np, center_s, sr)
+    core = find_core_region(wav_np, center_s, sr, select=select)
     if core is None:
         return wav_np
     cs, ce = core
@@ -349,11 +382,11 @@ def wav_shrink_pause(wav_np, center_s, target_ms, sr=22050, margin_ms=15):
     return wav_np
 
 
-def wav_extend_pause(wav_np, center_s, target_ms, sr=22050, margin_ms=15):
+def wav_extend_pause(wav_np, center_s, target_ms, sr=22050, margin_ms=15, select="longest"):
     """波形级延长：静音核心中部插入静音到 target_ms（静音接静音，无拼接感）。
     核心已长于目标时不动。返回新 wav（numpy 数组）。
     """
-    core = find_core_region(wav_np, center_s, sr)
+    core = find_core_region(wav_np, center_s, sr, select=select)
     if core is None:
         return wav_np
     cs, ce = core

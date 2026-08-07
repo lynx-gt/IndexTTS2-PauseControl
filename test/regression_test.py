@@ -78,7 +78,7 @@ def main():
         dur = len(wav_np) / sr
         n_chars = max(len(clean), 1)
         devs = []
-        for ch, tgt in marks:
+        for ch, tgt, _side in marks:
             exp_t = ch / n_chars * dur
             best = min(sils, key=lambda x: abs(x[0] - exp_t)) if sils else None
             if best is None or abs(best[0] - exp_t) > 1.0:

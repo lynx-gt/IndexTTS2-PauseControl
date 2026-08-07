@@ -9,13 +9,16 @@ No whisper, no re-decoding — pure waveform-domain processing.
 
 ## Features
 
-- **`[pause:N]` precise pauses**: extend / shrink / insert pauses at
-  non-sentence-final punctuation (comma, enumeration comma, etc.).
-  Note: **do not use marks for periods** — the model internally splits at
-  periods, so period pauses are inter-segment insertion
-  (`interval_silence`) or handled at concatenation time; a `[pause:N]`
-  placed *before* a period (same sub-segment) controls the pause at that
-  position (see "Suggested text organization")
+- **`[pause:N]` precise pauses**: extend / shrink / insert pauses at any
+  punctuation — **including before/after periods**:
+  - Normal marks (comma, enumeration comma): stable and precise (±20ms)
+  - Mark *before* a period (`…[pause:N]。`): controls the pause right
+    before the period (measured 838ms for an 800ms target)
+  - Mark *after* a period (`…。[pause:N]`): controls the pause after the
+    period (measured 798ms for an 800ms target, short and long texts)
+  Per-mark strategy: normal/after-period use "longest core", before-period
+  uses "nearest core" — mixed usage works independently
+  (see "Suggested text organization")
 - **No segment splitting**: the whole segment is synthesized in one pass and
   pauses are edited directly on the result — no need to split sentences and
   re-synthesize per part, **avoiding the prosody/tone artifacts that come

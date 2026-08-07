@@ -830,7 +830,7 @@ class IndexTTS2:
                     n_chars = max(len(text), 1)  # clean_text 全局字符数
                     wav_dur = wav_det_np.shape[-1] / sampling_rate
                     # 标记预期位置（时间域：字符比例 × 音频时长）
-                    marks_pos = [(ch_off / n_chars * wav_dur, ms) for ch_off, ms in seg_marks]
+                    marks_pos = [(ch_off / n_chars * wav_dur, ms, side) for ch_off, ms, side in seg_marks]
                     print(f">> [pause] seg_marks={seg_marks} n_chars={n_chars} wav_dur={wav_dur:.2f}s "
                           f"sent_tokens={len(sent)}")
                     # 停顿段（时间域）
@@ -849,10 +849,12 @@ class IndexTTS2:
                         if j >= 0:
                             mid_s, d = pause_segs[j]
                             target = marks_pos[i][1]
+                            # 标记级核心定位策略：句号前标记走 nearest，其余走 longest（验证版）
+                            sel = "nearest" if marks_pos[i][2] == "before" else "longest"
                             if target >= d:
-                                ops.append((mid_s, "ext", target, f"标记{i}: 延长 {d:.0f}→{target}ms"))
+                                ops.append((mid_s, "ext", target, sel, f"标记{i}: 延长 {d:.0f}→{target}ms"))
                             else:
-                                ops.append((mid_s, "shr", target, f"标记{i}: 缩短 {d:.0f}→{target}ms"))
+                                ops.append((mid_s, "shr", target, sel, f"标记{i}: 缩短 {d:.0f}→{target}ms"))
                     for i in inserted:
                         t_center = marks_pos[i][0]
                         t_valley, e_valley = pause_control.find_energy_valley(wav_np, t_center, sampling_rate)
@@ -861,13 +863,14 @@ class IndexTTS2:
                             print(f">> [pause] 标记{i} 目标{marks_pos[i][1]}ms：该处无真静音"
                                   f"（能量谷{e_valley:.2e}），放弃插入避免切字，保留原样")
                             continue
-                        ops.append((t_valley, "ext", marks_pos[i][1],
+                        sel = "nearest" if marks_pos[i][2] == "before" else "longest"
+                        ops.append((t_valley, "ext", marks_pos[i][1], sel,
                                     f"标记{i}: 插入 {marks_pos[i][1]}ms（能量谷{t_valley:.2f}s）"))
-                    for pos, kind, target, desc in sorted(ops, key=lambda o: o[0], reverse=True):
+                    for pos, kind, target, sel, desc in sorted(ops, key=lambda o: o[0], reverse=True):
                         if kind == "ext":
-                            wav_np = pause_control.wav_extend_pause(wav_np, pos, target, sampling_rate)
+                            wav_np = pause_control.wav_extend_pause(wav_np, pos, target, sampling_rate, select=sel)
                         else:
-                            wav_np = pause_control.wav_shrink_pause(wav_np, pos, target, sampling_rate)
+                            wav_np = pause_control.wav_shrink_pause(wav_np, pos, target, sampling_rate, select=sel)
                         ops_log.append(desc)
                     wav = torch.from_numpy(wav_np).unsqueeze(0).to(wav_det.device)
                     for line in ops_log:
@@ -949,19 +952,19 @@ class IndexTTS2:
             seg_ranges.append((acc, acc + len(seg)))
             acc += len(seg)
         out = [[] for _ in segments]
-        for char_pos, ms in marks:
+        for char_pos, ms, _side in marks:
             ti = 0
             while ti < len(tok_offsets) - 1 and tok_offsets[ti + 1] <= char_pos:
                 ti += 1
             for si, (a, b) in enumerate(seg_ranges):
                 if a <= ti < b:
                     # 保留全局字符位置（marks_pos 用全局比例 × codes_len，token 拼接长度不可用）
-                    out[si].append((char_pos, ms))
+                    out[si].append((char_pos, ms, _side))
                     break
             else:
                 # 越界（标记贴近段尾）：挂到最后一段末位
                 if segments:
-                    out[-1].append((char_pos, ms))
+                    out[-1].append((char_pos, ms, _side))
         return out
 
     def _s2mel_wav(self, latent, codes, code_lens, diffusion_steps, inference_cfg_rate,

@@ -82,7 +82,7 @@ def main():
         dur = len(wav_np) / sr
         n_chars = max(len(clean), 1)
         print("停顿检测:", [(round(s, 2), round(d)) for s, d in sils])
-        for mi, (ch, tgt) in enumerate(marks):
+        for mi, (ch, tgt, _side) in enumerate(marks):
             exp_t = ch / n_chars * dur
             best = min(sils, key=lambda x: abs(x[0] - exp_t)) if sils else None
             if best is None or abs(best[0] - exp_t) > 1.0:

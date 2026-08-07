@@ -81,7 +81,7 @@ def main():
         n_chars = max(len(clean), 1)
         line = "%-10s %s\n       时长 %.2fs | 停顿:" % (name, text, dur)
         if marks:
-            for ch, tgt in marks:
+            for ch, tgt, _side in marks:
                 exp_t = ch / n_chars * dur
                 best = min(sils, key=lambda x: abs(x[0] - exp_t)) if sils else None
                 m = "%.0fms(目标%d)" % (best[1], tgt) if best and abs(best[0] - exp_t) < 1.0 else "N/A"
