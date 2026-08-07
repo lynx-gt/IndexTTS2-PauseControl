@@ -14,7 +14,7 @@ IndexTTS2-PauseControl 的 `[pause:N]` 实现方案与实验记录。
 
 弃用原因（token 级）：LLM 语义码中不存在可生成的"静音码"；实验提取的真静音码
 CORE10 在部分上下文解码会出杂音（prod_01 实测"深/吸"之间插入杂音）——
-详见下文第 3 节研究记录。代码保留在 `indextts/utils/pause_control.py` 供参考。
+完整研究记录见下文第 3 节。
 
 ## 2. 全波形方案（生产）
 

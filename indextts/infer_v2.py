@@ -802,7 +802,7 @@ class IndexTTS2:
                 diffusion_steps = int(generation_kwargs.pop("diffusion_steps", 25))
                 inference_cfg_rate = float(generation_kwargs.pop("inference_cfg_rate", 0.7))
                 if seg_marks:
-                    # ============ 全波形：token 级精确停顿控制 ============
+                    # 带停顿标记：检测停顿 → NW 对齐 → 波形调整（全波形，免重解码）
                     from indextts.utils import pause_control
                     # 第一遍 latent（codes 未改，用于检测）
                     with torch.amp.autocast(text_tokens.device.type, enabled=self.dtype is not None, dtype=self.dtype):
@@ -819,37 +819,35 @@ class IndexTTS2:
                             use_speed=use_speed,
                         )
                     self.offload_model(self.gpt)
-                    # 全波形方案：一次生成（diffusion_steps 步）即为最终 wav，检测与输出共用
-                    # （detect_cfm_steps 参数保留兼容，不再影响输出质量）
+                    # 一次生成即为最终音频，检测与输出共用同一份 wav
+                    # （detect_cfm_steps 仅保留兼容，不影响输出质量）
                     wav_det = self._s2mel_wav(latent_det, codes, code_lens, diffusion_steps, inference_cfg_rate,
                                               speaking_speed, prompt_condition, ref_mel, style)
                     wav_det_np = wav_det.squeeze(0).cpu().numpy()
                     wav_dur = wav_det_np.shape[-1] / sampling_rate
                     pauses_raw = pause_control.detect_pauses(wav_det_np, sampling_rate)
-                    codes_len = codes.shape[-1]
-                    n_chars = max(len(text), 1)  # clean_text 全局字符数
+                    n_chars = max(len(text), 1)
                     wav_dur = wav_det_np.shape[-1] / sampling_rate
                     # 标记预期位置（时间域：字符比例 × 音频时长）
                     marks_pos = [(ch_off / n_chars * wav_dur, ms, side) for ch_off, ms, side in seg_marks]
                     print(f">> [pause] seg_marks={seg_marks} n_chars={n_chars} wav_dur={wav_dur:.2f}s "
                           f"sent_tokens={len(sent)}")
-                    # 停顿段（时间域）
+                    # 停顿段（时间域）；中点 = 起点 + 时长ms/2000（ms→s 再取半）
                     pause_segs = [(s0 + d / 2000.0, d) for s0, d, cs0, cd in pauses_raw]
                     pauses_pos = [(p[0], p[1]) for p in pause_segs]
                     assign, inserted, skipped, conf = pause_control.nw_align(
                         marks_pos, pauses_pos, int(wav_dur), wav_dur)
-                    # ============ 全波形处理（延长/缩短/插入 统一 wav 域，无重解码）============
-                    # 操作按目标位置【从后往前】执行：前面的延长/插入会移动后续停顿坐标，
-                    # 倒序执行保证每个操作落在正确的停顿上（prod20_13 教训：延长 611ms 后
-                    # 缩短操作用原始坐标，作用到错误位置产生 299ms 伪停顿）
+                    # 全波形处理：延长/缩短/插入。操作按目标位置从后往前执行——
+                    # 先执行的延长/插入会移动后续停顿的坐标，倒序才能保证每个
+                    # 操作落在正确的停顿上
                     wav_np = wav_det_np.copy()
                     ops_log = []
-                    ops = []  # (位置s, 操作类型, 目标ms, 描述)
+                    ops = []  # (位置s, 操作类型, 目标ms, 定位策略, 描述)
                     for i, j in enumerate(assign):
                         if j >= 0:
                             mid_s, d = pause_segs[j]
                             target = marks_pos[i][1]
-                            # 标记级核心定位策略：句号前标记走 nearest，其余走 longest（验证版）
+                            # 句号前标记取最近的停顿核心，其余取最长的（句号处停顿常被拆成多段）
                             sel = "nearest" if marks_pos[i][2] == "before" else "longest"
                             if target >= d:
                                 ops.append((mid_s, "ext", target, sel, f"标记{i}: 延长 {d:.0f}→{target}ms"))
@@ -858,7 +856,7 @@ class IndexTTS2:
                     for i in inserted:
                         t_center = marks_pos[i][0]
                         t_valley, e_valley = pause_control.find_energy_valley(wav_np, t_center, sampling_rate)
-                        # 插入保护：能量谷必须真静音（< 阈值×5），否则插在语音中间会切字——宁缺毋滥
+                        # 插入保护：能量谷必须真静音（< 阈值×5），否则插在语音中间会切字
                         if e_valley > pause_control.DETECT_THRESHOLD * 5:
                             print(f">> [pause] 标记{i} 目标{marks_pos[i][1]}ms：该处无真静音"
                                   f"（能量谷{e_valley:.2e}），放弃插入避免切字，保留原样")
@@ -878,7 +876,7 @@ class IndexTTS2:
                     print(f">> [pause] 检测停顿{len(pauses_raw)}个 assign={assign} insert={inserted} skip={skipped}")
                     gpt_forward_time += time.perf_counter() - m_start_time
                 else:
-                    # ============ 常规路径 ============
+                    # 常规路径：无停顿标记，直接解码
                     with torch.amp.autocast(text_tokens.device.type, enabled=self.dtype is not None, dtype=self.dtype):
                         latent = self.gpt(
                             speech_conditioning_latent,
