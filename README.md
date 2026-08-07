@@ -131,6 +131,17 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 
 > 致谢不代表上述团队对本项目的认可或背书；对原模型的修改与官方无关（见 `THIRD_PARTY_NOTICES.md`）。
 
+## 测试
+
+`test/` 提供冒烟与回归测试（需要本地 GPU + 模型权重，不适合 CI 自动跑；固定 seed 可复现）：
+
+```bash
+python test/smoke_test.py --model-dir <模型目录> --spk-ref <参考音频>   # 中英双语冒烟
+python test/regression_test.py --model-dir <模型目录> --spk-ref <参考音频>  # 5 段回归
+```
+
+发布版实测：冒烟中英 PASS（偏差 -2/-10ms 内）；回归 5 段平均偏差 5ms。
+
 ## License
 
 - 本项目原创部分（ComfyUI 节点、pause 方案、文档）：MIT License（见 `LICENSE`）

@@ -11,7 +11,6 @@ soundfile>=0.14           # 推理输出（torchaudio 2.9 在 Windows 不可用�
 # 补装依赖（ComfyUI 环境缺失的，逐个安装）
 json5
 munch
-descript-audiotools       # 需 --no-deps 安装（PyPI 包名）
 flatten_dict
 julius
 argbind
@@ -19,6 +18,10 @@ markdown2
 randomname
 pystoi
 tensorboard
+
+# ⚠️ descript-audiotools 不在自动安装列表：其依赖约束（protobuf<3.20 等）会降级
+# 破坏已有环境。请用 install.py 安装（自动 --no-deps），或手动：
+#   pip install --no-deps descript-audiotools
 
 # 候选试听/旧 whisper 后处理（IndexTTSListen 的 task 下拉无需；auto_pause 旧方案需要）
 # openai-whisper          # 模型自动下载到 models/index_tts/whisper/，或离线放置
