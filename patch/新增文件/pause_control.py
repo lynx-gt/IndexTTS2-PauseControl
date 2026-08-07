@@ -41,12 +41,14 @@ def parse_pause_marks(text):
         unit = m.group(2)
         ms = int(num * 1000) if unit == "s" else int(num)
         # 标点环境：看原文本中标记前后的字符
+        # （注意空串守卫："" in "。！？…" 为 True，标记在开头/结尾时
+        #   前一/后一字符为空串，必须排除，否则 side 会误判）
         side = "none"
         nxt = text[m.end():m.end() + 1]
         prv = text[max(0, m.start() - 1):m.start()]
-        if nxt in "。！？…":
+        if nxt and nxt in "。！？…":
             side = "before"
-        elif prv in "。！？…":
+        elif prv and prv in "。！？…":
             side = "after"
         # 标记在 clean_text 中的位置 = 原位置 - 之前已替换标记的长度差
         # （标记替换为单个逗号，clean 文本比原文本短）

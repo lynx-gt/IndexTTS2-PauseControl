@@ -45,6 +45,11 @@ jobs:
           diff -q "patch/新增文件/pause_control.py" indextts/utils/pause_control.py
           echo "patch in sync with main tree"
 
+      - name: Unit tests (no GPU)
+        run: |
+          pip install -q numpy torch --index-url https://download.pytorch.org/whl/cpu
+          python test/unit_test.py
+
       - name: JSON validity
         run: |
           python -c "
