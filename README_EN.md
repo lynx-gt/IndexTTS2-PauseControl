@@ -25,6 +25,12 @@ expected, or pausing where there is no punctuation. Marks are not limited to
 punctuation positions: a pause of a specified duration can be inserted at any
 position, including places without punctuation.
 
+The official inter-sentence silence parameter (`interval_silence`) defaults to
+200ms — shorter than the model's natural in-sentence comma pauses (~300ms), so
+**periods would pause less than commas** (an unnatural inversion). This
+project's nodes default to 400ms (closer to the natural period pause), and
+period pauses can be overridden precisely with marks.
+
 No model changes, no retraining — install the nodes and use them.
 
 ## Installation
