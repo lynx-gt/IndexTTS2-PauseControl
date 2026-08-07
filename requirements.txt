@@ -1,0 +1,28 @@
+# IndexTTS2-PauseControl 依赖
+# 安装到 ComfyUI 的 Python 环境（Windows：ComfyUI 根目录 ../python/python.exe -m pip install ...）
+# 注意：ComfyUI 自带 torch/transformers，请勿覆盖。
+
+# 推理核心（ComfyUI 环境通常自带，此处列出用于确认版本兼容）
+torch>=2.9
+transformers>=4.57        # 本包对 4.57 打了兼容补丁（见 docs/PAUSE_CONTROL.md「迁移补丁」）
+numpy
+soundfile>=0.14           # 推理输出（torchaudio 2.9 在 Windows 不可用，改用 soundfile 写 wav）
+
+# 补装依赖（ComfyUI 环境缺失的，逐个安装）
+json5
+munch
+descript-audiotools       # 需 --no-deps 安装（PyPI 包名）
+flatten_dict
+julius
+argbind
+markdown2
+randomname
+pystoi
+tensorboard
+
+# 候选试听/旧 whisper 后处理（IndexTTSListen 的 task 下拉无需；auto_pause 旧方案需要）
+# openai-whisper          # 模型自动下载到 models/index_tts/whisper/，或离线放置
+
+# 说明：
+# - descript-audiotools 在 PyPI 名为 descript-audiotools；audiotools 名字已失效。
+# - flash_attn 非必需（BigVGAN 自定义 CUDA kernel 缺失时自动回退 torch 实现）。
