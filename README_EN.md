@@ -42,6 +42,17 @@ No whisper, no re-decoding — pure waveform-domain processing.
   pricing + time hard-limit) → silent-core waveform editing (no re-decoding)
 - **Batch generation + candidate listening + acceptance marking**: manifest
   resume, per-round candidates, one-click "accept round N" writing to manifest
+- **Seed fixing/reproducibility**: a fixed seed reproduces the same synthesis
+  exactly (not available in the official code); otherwise the actual seed is
+  recorded to a `.seed` file automatically
+- **Finalization + SRT subtitles**: pick the accepted round per entry and
+  generate subtitles from real wav durations (`IndexTTSSrt`)
+- **Pause fixing**: adjust/remove pauses on generated audio by
+  `index:target-ms` or `time:target-ms` (`IndexTTSFix`)
+- **VRAM release**: unload the model before switching to video workflows
+  (`IndexTTSUnload`)
+- **Frontend dynamic dropdowns**: task dirs / entry numbers / reference audio
+  auto-enumerated, no manual path typing
 - **Markdown script support**: script entries (one sentence per entry)
   or plain multi-line text
 
@@ -153,6 +164,9 @@ Regenerate with your own reference via
 | IndexTTSBatch | `interval_silence` | Inter-segment silence ms (period pauses = this value after period-based segmentation, default 400) |
 | IndexTTSListen | `task_dir` | Connect to batch node's task_dir output (takes priority) |
 | IndexTTSListen | `accept_round` | Acceptance mark: 0=listen only; 1/2/3=mark that round accepted (written to manifest.json) |
+| IndexTTSUnload | `model` | Release IndexTTS model VRAM (call after TTS, before video workflows) |
+| IndexTTSFix | `marks` | Pause fix string: `2:800, 3:0` (index:target-ms, 0=delete) or `7.53:500` (time:target-ms). Index mode needs the pause records written by the legacy whisper path; waveform pause_mode leaves them empty — use the time mode |
+| IndexTTSSrt | `chosen` | Finalization: `1,2,1,3` (round per entry, in order); single `3` = all round 3; empty = all round 1. SRT built from real wav durations |
 
 ### Markdown script format
 

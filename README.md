@@ -26,6 +26,11 @@ IndexTTS2 精确停顿控制（`[pause:N]`）ComfyUI 节点包。
 - **句内不切分**：逗号/顿号处标记在分句内波形操作，不重生成、不切句——避免句内语气/韵律异常
 - **全波形方案**：标记转逗号让模型自然生成 → 能量检测定位停顿 → NW 全局对齐 → 静音核心波形操作（免重解码）
 - **批量生成 + 候选试听 + 验收标记**：manifest 断点续跑、rounds 轮次候选、试听节点一键标记"第 N 轮通过验收"
+- **seed 固定/复现**：固定 seed 可精确复现同一生成（官方无此能力）；未固定时自动记录实际 seed 到 `.seed` 文件
+- **定版 + SRT 字幕**：按 manifest 顺序 + 每片段选定轮次，读实际 wav 时长生成字幕（`IndexTTSSrt`）
+- **停顿修复**：对已生成音频按"序号:目标ms"或"时间点:目标ms"调整/删除停顿（`IndexTTSFix`）
+- **显存释放**：TTS 跑完、进视频流程前一键卸载模型（`IndexTTSUnload`）
+- **前端动态下拉**：任务目录/段号/参考音频自动枚举，免手输路径
 - **分句稿支持**：Markdown 分句稿（一句一个片段）或多行文本批量生成
 
 ## 安装
@@ -128,6 +133,9 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 | IndexTTSBatch | `interval_silence` | 分句间插入静音 ms（句号切分后，句号处停顿 = 该值，默认 400） |
 | IndexTTSListen | `task_dir` | 接收批量节点的 task_dir 输出（连线优先） |
 | IndexTTSListen | `accept_round` | 验收标记：0=仅试听；1/2/3=标记第 N 轮通过（写入 manifest.json） |
+| IndexTTSUnload | `model` | 释放 IndexTTS 模型显存（TTS 跑完、进视频流程前调用） |
+| IndexTTSFix | `marks` | 停顿修复串：`2:800, 3:0`（序号:目标ms，0=删除）或 `7.53:500`（时间点:目标ms）。序号模式依赖批量时落盘的停顿记录（旧 whisper 路径）；全波形 pause_mode 下记录为空，请用时间点模式 |
+| IndexTTSSrt | `chosen` | 定版选择：`1,2,1,3`（每片段轮次，按顺序）；单值 `3`=全部第 3 轮；空=全第 1 轮。按实际 wav 时长累加生成 SRT |
 
 ### 分句稿格式（Markdown）
 
