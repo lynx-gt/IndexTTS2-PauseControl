@@ -32,9 +32,14 @@ IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**
 
 > 也支持 **ComfyUI-Manager** 一键安装（搜索 `IndexTTS2-PauseControl`）。⚠️ 请以**目录方式运行**（放 `custom_nodes/` 下），**不要 `pip install .`**——本项目包名与官方 `indextts` 同名，pip 安装会覆盖官方推理包。
 
-### 方式二：打补丁（已有官方 indextts 包的用户）
+### 方式二：打补丁（已有官方 indextts 包的用户，非 ComfyUI 也可）
 
-如果你已有官方 IndexTTS2 推理代码（官方整合包 / 官方 ComfyUI 节点 / 自建管线），只需应用本仓库 `patch/` 目录下的修改：
+如果你已有官方 IndexTTS2 推理代码（官方整合包 / 官方 ComfyUI 节点 / 自建管线），只需应用本仓库 `patch/` 目录下的修改——**不限于 ComfyUI**：
+
+- **ComfyUI 用户**：打补丁后直接用本仓库节点（与方式一效果相同）
+- **非 ComfyUI 用户**（Gradio WebUI 整合包、自建 API 等）：打补丁后，在调用
+  `IndexTTS2.infer(...)` 时传入 `pause_mode=True` 即可获得 `[pause:N]` 能力
+  （详见 `patch/修改说明.md`；WebUI 接入方式未经实际部署验证）
 
 1. 将 `patch/modified/` 中列出的文件**覆盖**到你的 indextts 包对应位置
 2. 将 `patch/新增文件/` 中列出的文件复制到对应目录

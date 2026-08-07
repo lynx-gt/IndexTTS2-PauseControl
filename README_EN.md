@@ -54,11 +54,22 @@ No model changes, no retraining — install the nodes and use them.
 > project shares the package name `indextts` with the official package; pip
 > installation would overwrite the official inference code.
 
-### Option 2: Patch (for users who already have official indextts code)
+### Option 2: Patch (for users who already have official indextts code — not limited to ComfyUI)
 
-See `patch/修改说明.md` (Chinese) — copy the modified files from `patch/modified/`
-over your official files, add `patch/新增文件/pause_control.py` to
-`indextts/utils/`, then pass `pause_mode=True` to `IndexTTS2.infer(...)`.
+If you already have official IndexTTS2 inference code (official pack /
+official ComfyUI nodes / your own pipeline), apply the modifications under
+`patch/` — **not limited to ComfyUI**:
+
+- **ComfyUI users**: after patching, use the nodes from this repo (same
+  effect as Option 1)
+- **Non-ComfyUI users** (Gradio WebUI packs, custom APIs, etc.): after
+  patching, pass `pause_mode=True` to `IndexTTS2.infer(...)` to get the
+  `[pause:N]` capability (see `patch/修改说明.md`; the WebUI integration is
+  not verified in production)
+
+Steps: copy the modified files from `patch/modified/` over your official
+files, add `patch/新增文件/pause_control.py` to `indextts/utils/` (details in
+`patch/修改说明.md`, Chinese), then pass `pause_mode=True`.
 
 > The patch is file-overwrite based, not a git diff, because official code
 > versions drift. The WebUI (Gradio) integration steps are described but
