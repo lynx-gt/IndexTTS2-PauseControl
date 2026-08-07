@@ -239,7 +239,8 @@ output/batch_20260807_120000/
    400ms); gaps covered by marks use the mark duration
 
 Full details, parameter calibration and accuracy data:
-[docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md).
+[docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md). Terminology-to-code
+mapping and the data flow: [docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md).
 
 ## Known limitations
 

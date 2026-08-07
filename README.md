@@ -196,7 +196,8 @@ output/批量生成_20260807_120000/
    最后一个分句未命中时在音频末尾追加静音
 5. **拼接**：分句间静音 = `interval_silence`（默认 400ms），被标记覆盖的间隙用标记时长
 
-详细方案、参数标定与精度数据见 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md)。
+详细方案、参数标定与精度数据见 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md)；
+术语与代码符号对照、数据流见 [docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md)。
 
 ## 已知限制
 
