@@ -1,7 +1,5 @@
 # IndexTTS2-PauseControl
 
-<p align="center"><img src="assets/banner.png" alt="IndexTTS2-PauseControl" width="100%"></p>
-
 
 Precise pause control (`[pause:N]`) for IndexTTS2 as ComfyUI nodes.
 
