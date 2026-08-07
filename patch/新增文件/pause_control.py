@@ -135,6 +135,12 @@ def nw_align(marks, pauses, t_scale, wav_dur,
       conf[i]：匹配距离，供人工确认参考
     """
     M, N = len(marks), len(pauses)
+    if M == 0:
+        # 无标记：全部停顿视为多余（不动）
+        return [], [], list(range(N)), []
+    if N == 0:
+        # 无停顿：全部标记视为漏停（走插入路径，由插入保护决定是否生效）
+        return [-1] * M, list(range(M)), [], [None] * M
     t_scale = max(t_scale, 1)
     A = np.array([[marks[i][0] / t_scale, marks[i][1] / 2000.0] for i in range(M)])
     B = np.array([[pauses[j][0] / t_scale, pauses[j][1] / 2000.0] for j in range(N)])
