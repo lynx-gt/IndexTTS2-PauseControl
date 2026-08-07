@@ -34,6 +34,7 @@ def parse_pause_marks(text):
     clean_parts = []
     marks = []
     pos = 0
+    shift = 0  # 之前已替换标记的长度差（原文本 → clean 文本）
     for m in _PAUSE_RE.finditer(text):
         clean_parts.append(text[pos:m.start()])
         num = float(m.group(1))
@@ -47,8 +48,10 @@ def parse_pause_marks(text):
             side = "before"
         elif prv in "。！？…":
             side = "after"
-        # 标记替换为单个逗号，clean_text 中该逗号的字符位置 = 标记起点
-        marks.append((m.start(), ms, side))
+        # 标记在 clean_text 中的位置 = 原位置 - 之前已替换标记的长度差
+        # （标记替换为单个逗号，clean 文本比原文本短）
+        marks.append((m.start() - shift, ms, side))
+        shift += len(m.group(0)) - 1
         clean_parts.append("，")
         pos = m.end()
     clean_parts.append(text[pos:])
