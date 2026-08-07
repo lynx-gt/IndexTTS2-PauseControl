@@ -52,8 +52,8 @@ over your official files, add `patch/新增文件/pause_control.py` to
 ```
 
 Accepted forms: `[pause:600ms]` / `[pause:600]` / `[pause:1.5s]` / `[pause:0.8s]`
-(`[wait:]` and `[stop:]` prefixes are also accepted). Marks are replaced by
-commas before synthesis.
+(`[wait:]` and `[stop:]` prefixes are also accepted). Marks are replaced by a
+**full-width Chinese comma (，)** before synthesis.
 
 **Chinese and English both work**: marks are always replaced with a Chinese
 comma; English sentences are verified to work precisely as well (800ms target
