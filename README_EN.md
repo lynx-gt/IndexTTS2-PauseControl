@@ -12,12 +12,13 @@ This tool (a ComfyUI node pack) provides **precise pause control**: specify
 pause requirements directly in the text:
 
 ```
-他停下脚步[pause:800ms]深吸一口气[pause:200ms]然后推开了那扇门。
+他停下脚步[pause:800ms]深吸一口气[pause:200ms]然后推开了那扇门[pause:600ms]。
 ```
 
-After synthesis, the pause between "停下脚步" and "深吸一口气" is 800ms, and
-the pause after "深吸一口气" is 200ms — measured average deviation 13ms.
-**Period pauses are controllable too.**
+After synthesis, the pause after "停下脚步" is 800ms, after "深吸一口气" is
+200ms, and before the period (after "那扇门") is 600ms — measured average
+deviation 13ms. In-sentence and around-period pauses are specified the same
+way.
 
 The model may occasionally pause inconsistently — missing a pause where one is
 expected, or pausing where there is no punctuation. Marks are not limited to
