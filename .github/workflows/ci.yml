@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Syntax check (py_compile)
+        run: |
+          python -m compileall -q indextts nodes.py api.py lib test examples install.py
+          echo "syntax OK"
+
+      - name: Import structure check
+        run: |
+          python -c "
+          import ast, sys
+          # 检查节点映射完整性（无需 torch/ComfyUI 环境）
+          src = open('nodes.py', encoding='utf-8').read()
+          tree = ast.parse(src)
+          classes = [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+          required = ['IndexTTSLoader', 'IndexTTSUnload', 'IndexTTSSingle', 'IndexTTSBatch',
+                      'IndexTTSListen', 'IndexTTSFix', 'IndexTTSSrt']
+          missing = [c for c in required if c not in classes]
+          assert not missing, 'missing node classes: %s' % missing
+          print('node classes OK:', len(classes))
+          "
+
+      - name: JSON validity
+        run: |
+          python -c "
+          import json
+          for f in ['workflows/indextts_pause_single.json', 'workflows/indextts_pause_batch.json']:
+              json.load(open(f, encoding='utf-8'))
+              print('json OK:', f)
+          "
+
+      - name: Markdown link check (repo-internal)
+        run: |
+          python - <<'EOF'
+          import os, re
+          for p in ['README.md', 'README_EN.md']:
+              s = open(p, encoding='utf-8').read()
+              for m in re.findall(r'\]\(([^)#]+)\)', s):
+                  if not m.startswith(('http', '#')) and not os.path.exists(m):
+                      raise SystemExit('broken link %s in %s' % (m, p))
+              print('links OK:', p)
+          EOF
