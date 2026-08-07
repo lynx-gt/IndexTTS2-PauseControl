@@ -102,12 +102,12 @@ IndexTTSLoader → IndexTTSBatch(pause_mode=开) → IndexTTSListen(试听/验�
 段内（句内）精确停顿用 `[pause:N]`，句号停顿留给拼接时插入静音。
 
 
-**直接试听**（点击链接，GitHub 文件页内置播放器播放）：
+**波形对比**（点击波形图下载音频试听）：
 
 | 中文 | 英文 |
 |------|------|
-| [▶ zh_plain.wav（无 pause）](examples/audio/zh_plain.wav) | [▶ en_plain.wav（无 pause）](examples/audio/en_plain.wav) |
-| [▶ zh_pause.wav（有 pause）](examples/audio/zh_pause.wav) | [▶ en_pause.wav（有 pause）](examples/audio/en_pause.wav) |
+| [![zh_plain 波形](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain（无 pause） | [![en_plain 波形](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain（无 pause） |
+| [![zh_pause 波形](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause（有 pause） | [![en_pause 波形](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause（有 pause） |
 
 ## 工作原理（简述）
 
