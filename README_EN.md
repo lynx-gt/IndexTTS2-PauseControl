@@ -132,8 +132,11 @@ target → 778ms measured).
 - **Quote scenarios**: `period + quote` (`…。'`) is controllable too — no need
   to avoid quotes
 - **Uniform period pauses**: without marks, every period pause is the same
-  `interval_silence` (default 400ms, steady) — set the overall rhythm first,
-  then override individual periods with marks
+  `interval_silence` (default 400ms). With the official default of 200ms the
+  inter-sentence pause is shorter than the model's natural in-sentence comma
+  pauses (~300ms), so periods would pause less than commas — an unnatural
+  inversion; 400ms matches the natural period pause better. Set the overall
+  rhythm first, then override individual periods with marks
 
 **Production workflow capabilities** (for long-form content):
 
