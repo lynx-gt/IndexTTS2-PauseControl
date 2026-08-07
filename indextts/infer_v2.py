@@ -832,7 +832,6 @@ class IndexTTS2:
                     wav_dur = wav_det_np.shape[-1] / sampling_rate
                     pauses_raw = pause_control.detect_pauses(wav_det_np, sampling_rate)
                     n_chars = max(len(text), 1)
-                    wav_dur = wav_det_np.shape[-1] / sampling_rate
                     # 标记预期位置（时间域：段内字符比例 × 本段时长。
                     # 分句后全局比例会漂移，段内比例对中文精确）
                     marks_pos = [(ch_off / max(seg_chars, 1) * wav_dur, ms, side)
@@ -880,9 +879,9 @@ class IndexTTS2:
                             wav_np = pause_control.wav_shrink_pause(wav_np, pos, target, sampling_rate, select=sel)
                         ops_log.append(desc)
                     wav = torch.from_numpy(wav_np).unsqueeze(0).to(wav_det.device)
-                    # 段尾 before 标记联动：段内命中（匹配或插入成功）→ 该段间跳过
-                    # （防叠加：段内已调到目标）；未命中 → 段间补目标时长。
-                    # 已被 after 标记设置的间隙优先（after 语义更明确），不覆盖。
+                    # 段尾标记联动（句号前/引号后等段尾标记）：段内命中（匹配或插入
+                    # 成功）→ 该分句间跳过（防叠加：段内已调到目标）；未命中 →
+                    # 分句间补目标时长。已被 after 标记设置的间隙优先，不覆盖。
                     if tail_cands is not None and seg_idx in tail_cands:
                         t_ms, midx = tail_cands[seg_idx]
                         hit = midx < len(assign) and (assign[midx] >= 0 or midx in inserted_ok)
@@ -983,9 +982,10 @@ class IndexTTS2:
           seg_breaks：{间隙索引: 时长ms}——句号后标记（after）落在段首的，
                    归为段间停顿（分句按句号切段，句号留前段、标记进下段段首），
                    由拼接层把该间隙静音改为目标时长，段内不处理。
-          tail_cands：{段索引: (目标ms, out[si]下标)}——段尾 before 标记
-                   （标记后紧跟段尾句号）段内照常尝试调整；命中（匹配或插入
-                   成功）则段间跳过，未命中则段间补目标时长（见生成循环）。
+          tail_cands：{段索引: (目标ms, out[si]下标)}——段尾标记（句号前/句号+引号
+                   后等，标记后到段尾全是标点）段内照常尝试调整；命中（匹配或插入
+                   成功）则段间跳过，未命中则段间补目标时长（最后一段在音频末尾
+                   追加静音），见生成循环。
         """
         seg_ranges = []
         acc = 0
