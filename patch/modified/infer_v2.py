@@ -687,10 +687,12 @@ class IndexTTS2:
         else:
             pause_marks = []
         text_tokens_list = self.tokenizer.tokenize(text)
-        segments = self.tokenizer.split_sentences(text_tokens_list, max_text_tokens_per_segment)
+        # 不合并短句：句号=段界（段间停顿控制依赖句号切段，见 _distribute_pause_marks）
+        segments = self.tokenizer.split_sentences(text_tokens_list, max_text_tokens_per_segment,
+                                                  merge_sentences=False)
         segments_count = len(segments)
         if pause_marks:
-            seg_marks_all, seg_breaks, tail_cands = self._distribute_pause_marks(pause_marks, text_tokens_list, segments)
+            seg_marks_all, seg_breaks, tail_cands = self._distribute_pause_marks(pause_marks, segments)
         if verbose:
             print("text_tokens_list:", text_tokens_list)
             print("segments count:", segments_count)
@@ -962,12 +964,11 @@ class IndexTTS2:
         """
         return len(tok) - (1 if tok.startswith("▁") else 0)
 
-    def _distribute_pause_marks(self, marks, text_tokens_list, segments):
+    def _distribute_pause_marks(self, marks, segments):
         """把 [pause:] 标记分配到 (segment_idx, 段内字符偏移, 段字符数, ms, side)。
 
-        标记位置（clean 字符坐标）与 token 流通过 _clean_len 累计对齐
-        （▁ 词首标记不计入字符），保证段内偏移/段长与 char_pos 同坐标系。
-        返回 (out, seg_breaks, tail_cands)：
+        标记位置与段范围同为 clean 字符坐标（_clean_len 累计），直接按
+        char_pos 定位段。返回 (out, seg_breaks, tail_cands)：
           out[si]：段内处理的标记，元组为 (段内偏移, 段字符数, ms, side)——
                    marks_pos 用段内比例（段内偏移/段字符数 × 本段时长）计算
                    预期位置；用全局比例在分句后会漂移（跨段标记偏差可达
@@ -979,11 +980,6 @@ class IndexTTS2:
                    （标记后紧跟段尾句号）段内照常尝试调整；命中（匹配或插入
                    成功）则段间跳过，未命中则段间补目标时长（见生成循环）。
         """
-        tok_offsets = []
-        acc = 0
-        for t in text_tokens_list:
-            tok_offsets.append(acc)
-            acc += self._clean_len(t)
         seg_ranges = []
         acc = 0
         for seg in segments:
@@ -994,11 +990,9 @@ class IndexTTS2:
         seg_breaks = {}
         tail_cands = {}
         for char_pos, ms, _side in marks:
-            ti = 0
-            while ti < len(tok_offsets) - 1 and tok_offsets[ti + 1] <= char_pos:
-                ti += 1
+            # char_pos 与 seg_ranges 同为 clean 字符坐标，直接定位段（无需 token 查找）
             for si, (a, b) in enumerate(seg_ranges):
-                if a <= ti < b:
+                if a <= char_pos < b:
                     off = char_pos - a
                     if _side == "after" and off == 0 and si > 0:
                         # 句号后标记且分句后落在段首：该停顿属于段间（句号切段所致）
