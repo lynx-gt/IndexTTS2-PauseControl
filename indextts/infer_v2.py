@@ -953,10 +953,20 @@ class IndexTTS2:
             wav_data = wav_data.numpy().T
             return (sampling_rate, wav_data)
 
+    @staticmethod
+    def _clean_len(tok):
+        """token 在 clean 文本中占的字符数。
+
+        sentencepiece 的词首标记 ▁ 是独立 token（或前缀），不计入 clean 字符：
+        '▁'→0、'标'→1、'▁,'→1、'.'→1（实测 bpe.model 行为）。
+        """
+        return len(tok) - (1 if tok.startswith("▁") else 0)
+
     def _distribute_pause_marks(self, marks, text_tokens_list, segments):
         """把 [pause:] 标记分配到 (segment_idx, 段内字符偏移, 段字符数, ms, side)。
 
-        基于 token 字符串长度累计定位（中文字符 = token，长度精确）。
+        标记位置（clean 字符坐标）与 token 流通过 _clean_len 累计对齐
+        （▁ 词首标记不计入字符），保证段内偏移/段长与 char_pos 同坐标系。
         返回 (out, seg_breaks, tail_cands)：
           out[si]：段内处理的标记，元组为 (段内偏移, 段字符数, ms, side)——
                    marks_pos 用段内比例（段内偏移/段字符数 × 本段时长）计算
@@ -973,12 +983,13 @@ class IndexTTS2:
         acc = 0
         for t in text_tokens_list:
             tok_offsets.append(acc)
-            acc += len(t)
+            acc += self._clean_len(t)
         seg_ranges = []
         acc = 0
         for seg in segments:
-            seg_ranges.append((acc, acc + len(seg)))
-            acc += len(seg)
+            seg_len = sum(self._clean_len(t) for t in seg)
+            seg_ranges.append((acc, acc + seg_len))
+            acc += seg_len
         out = [[] for _ in segments]
         seg_breaks = {}
         tail_cands = {}
