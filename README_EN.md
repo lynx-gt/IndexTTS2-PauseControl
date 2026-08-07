@@ -11,19 +11,26 @@ No whisper, no re-decoding — pure waveform-domain processing.
 ## Features
 
 - **`[pause:N]` precise pauses**: extend / shrink / insert pauses at any
-  punctuation — **including before/after periods**:
-  - Normal marks (comma, enumeration comma): stable and precise (±20ms)
-  - Mark *before* a period (`…[pause:N]。`): controls the pause right
-    before the period (measured 838ms for an 800ms target)
-  - Mark *after* a period (`…。[pause:N]`): controls the pause after the
-    period (measured 798ms for an 800ms target, short and long texts)
-  Per-mark strategy: normal/after-period use "longest core", before-period
-  uses "nearest core" — mixed usage works independently
-  (see "Suggested text organization")
-- **No segment splitting**: the whole segment is synthesized in one pass and
-  pauses are edited directly on the result — no need to split sentences and
-  re-synthesize per part, **avoiding the prosody/tone artifacts that come
-  with split-based approaches**
+  punctuation — **in-sentence and around periods, uniformly supported**:
+  - In-sentence marks (comma, enumeration comma): waveform-domain editing
+    in-segment (±20ms)
+  - Mark *before* a period (`…[pause:N]。`): segment-tail pause — edited
+    in-segment when hit, otherwise automatically falls back to inter-segment
+    control
+  - Mark *after* a period (`…。[pause:N]`): segment-head pause — directly
+    controlled by inter-segment silence
+  - Segment-tail fallback: on a miss, the target duration is realized via
+    inter-segment silence; for the **last segment** it is appended at the
+    audio tail
+- **Period = segment boundary**: segmentation splits at sentence-final
+  punctuation (no short-sentence merging) — every period pause is an
+  inter-segment silence: uniform `interval_silence` (default 400ms) when
+  unmarked, exact duration when marked
+- **Quote scenarios supported**: `period + quote` (`…。'`) segment tails are
+  controlled too (inter-segment fallback, no need to avoid quotes)
+- **No in-sentence splitting**: comma/period marks inside a sentence are
+  edited in the waveform domain — no re-synthesis, no sentence splitting,
+  avoiding in-sentence prosody/tone artifacts
 - **Waveform-domain pipeline**: marks → comma for the LLM → energy-based pause
   detection → Needleman-Wunsch global alignment (affine gap + asymmetric
   pricing + time hard-limit) → silent-core waveform editing (no re-decoding)
@@ -76,6 +83,17 @@ Accepted forms: `[pause:600ms]` / `[pause:600]` / `[pause:1.5s]` / `[pause:0.8s]
 (`[wait:]` and `[stop:]` prefixes are also accepted). Marks are replaced by a
 **full-width Chinese comma (，)** before synthesis.
 
+**Around periods** (segment-boundary pauses, most stable):
+
+```
+他深吸一口气[pause:800ms]。然后推开了门。    ← before the period (segment tail)
+他深吸一口气。[pause:800ms]然后推开了门。    ← after the period (segment head)
+```
+
+Period pauses are inter-segment silence: `interval_silence` (default 400ms)
+when unmarked, exact mark duration when marked. **Quote scenarios**
+(`…。'`) are supported too — no need to avoid them.
+
 **Duration range**: recommended **150ms – 5s**. Lower bound ≈100ms (energy
 detection minimum; <150ms measures slightly high including weak tails);
 no hard upper bound (silence insertion in the waveform domain — 1s/2s/5s all
@@ -126,54 +144,72 @@ Regenerate with your own reference via
 | IndexTTSSingle | `detect_cfm_steps` | **Deprecated** (no effect in waveform version), kept for compatibility |
 | IndexTTSBatch | `pause_mode` | Enable for batch; skips legacy whisper post-processing |
 | IndexTTSBatch | `rounds` | Candidate rounds per segment |
-| IndexTTSBatch | `interval_silence` | Inter-segment silence ms (only between sub-segments of a multi-sentence segment) |
+| IndexTTSBatch | `interval_silence` | Inter-segment silence ms (period pauses = this value after period-based segmentation, default 400) |
 | IndexTTSListen | `task_dir` | Connect to batch node's task_dir output (takes priority) |
 | IndexTTSListen | `accept_round` | Acceptance mark: 0=listen only; 1/2/3=mark that round accepted (written to manifest.json) |
 
 ### Suggested text organization
 
-Split the script into **one sentence per segment** (period at segment end);
-pauses between sentences default to concatenation-time control (inter-segment
-silence). Where a precise period pause is needed, override it with a mark:
-`句子[pause:800ms]。` (before the period) or `句子。[pause:800ms]` (after
-the period) — both are precise.
-
-
+- Split the script into **one sentence per segment**; period pauses are
+  uniformly controlled by inter-segment silence (`interval_silence`)
+- For a precise period pause, write a mark: `句子[pause:800ms]。` (before the
+  period) or `句子。[pause:800ms]` (after the period) — both are precise
+- In-sentence pauses (commas) use `[pause:N]` directly, edited in-segment
+- Long multi-mark sentences (>40 chars): if an individual mark misses due to
+  model pause fluctuation, change the seed or pick from the round candidates
+  (with rounds=3 there is usually a fully-hit candidate)
 
 ## How it works (brief)
 
-1. `[pause:N]` marks → commas → normal synthesis (model's natural pause
-   duration is irrelevant to the target)
-2. Energy-based pause detection (physical signal, 10ms frames; loose
-   threshold for segments + strict threshold for the silent core)
-3. Needleman-Wunsch alignment (affine gap, asymmetric pricing, 0.8s time
-   hard-limit) maps marks to pauses, tolerating extra/missing pauses
-4. Waveform editing on the silent core only (extend/shrink; insert at
-   energy valleys guarded by real-silence check — refuse rather than cut speech)
+1. **Segmentation**: split at sentence-final punctuation (period = segment
+   boundary, no short-sentence merging; in-sentence stays intact for prosody)
+2. **Mark classification**: in-sentence marks → in-segment processing;
+   before/after-period marks → segment-boundary processing
+3. **In-segment**: marks → commas → synthesis → energy-based pause detection
+   (physical signal, 10ms frames) → Needleman-Wunsch alignment (affine gap,
+   asymmetric pricing, 0.8s time hard-limit) → silent-core extend/shrink/insert
+   (no re-decoding)
+4. **Segment boundary**: tail mark hit → skip inter-segment silence (no
+   stacking); miss → realize target via inter-segment silence; last segment
+   miss → append silence at the audio tail
+5. **Concatenation**: inter-segment silence = `interval_silence` (default
+   400ms); gaps covered by marks use the mark duration
 
 Full details, parameter calibration and accuracy data:
 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md).
 
 ## Known limitations
 
-- **Marks right before a period often hit a weak pause** (no ≥30ms true
-  silence core); the "nearest core" strategy then targets the adjacent real
-  pause (the period boundary) — measured 838ms for an 800ms target (slightly
-  off-position, correct to the ear); if no silence exists in the window the
-  operation is refused (rather than cutting speech)
+- **Long single sentences with many marks**: positions are estimated by
+  character-ratio; on long sentences (>40 chars) the error may exceed the
+  match limit (0.8s) and an individual mark may miss — change the seed or
+  pick from round candidates
+- **No pause at a segment tail**: on a miss the target is still realized via
+  inter-segment silence / tail append, but the pause lands at the period
+  rather than right after the marked word — correct to the ear, slightly
+  off-position
 - The model may naturally insert a breath after a long pause; breaths have
   higher energy than silence and are not detected/edited (natural prosody —
   use post-processing denoise to remove if needed)
 - Insertion requires a real silence at the target (energy-valley guard);
   refused when speech is continuous (rather than cutting words)
-- Mark positions are estimated by character-ratio mapping; ±0.4s error on
-  long sentences — covered by NW alignment + time hard-limit
 - Short pauses (<250ms) measure slightly high (weak tail included), within ±30ms
 
 ## Tests
 
-`test/` provides smoke/regression tests. They require a local GPU and the
-model weights (not CI-friendly). Fixed seeds make them reproducible.
+`test/` provides three layers:
+
+```bash
+python test/unit_test.py    # core-function unit tests (no GPU/model, CI runs automatically, 30+ asserts)
+python test/smoke_test.py --model-dir <models> --spk-ref <ref audio>   # bilingual smoke
+python test/regression_test.py --model-dir <models> --spk-ref <ref audio>  # 5-segment regression
+```
+
+`unit_test.py` covers mark parsing / pause detection / NW alignment / waveform
+editing (incl. edge cases: empty audio, short silence, no pauses, coordinate
+regression) — verifies the core logic without a model; smoke/regression need
+GPU + model weights (fixed seeds, reproducible). Released build: smoke zh/en
+PASS; regression 5 segments average deviation 5ms.
 
 ## Acknowledgements
 
