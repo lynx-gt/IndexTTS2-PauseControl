@@ -35,6 +35,10 @@ No whisper, no re-decoding — pure waveform-domain processing.
 5. Restart ComfyUI
 
 > Also installable via **ComfyUI-Manager** (search `IndexTTS2-PauseControl`).
+>
+> ⚠️ Run as a **directory** (under `custom_nodes/`). **Do NOT `pip install .`** — this
+> project shares the package name `indextts` with the official package; pip
+> installation would overwrite the official inference code.
 
 ### Option 2: Patch (for users who already have official indextts code)
 

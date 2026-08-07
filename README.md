@@ -29,6 +29,9 @@ IndexTTS2 精确停顿控制（`[pause:N]`）ComfyUI 节点包。
 5. 重启 ComfyUI
 
 > 也支持 **ComfyUI-Manager** 一键安装（搜索 `IndexTTS2-PauseControl`）。
+>
+> ⚠️ 请以**目录方式运行**（放 `custom_nodes/` 下），**不要 `pip install .`**——本项目
+> 包名与官方 `indextts` 同名，pip 安装会覆盖官方推理包。
 
 ### 方式二：打补丁（已有官方 indextts 包的用户）
 
