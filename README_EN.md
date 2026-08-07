@@ -1,70 +1,26 @@
 # IndexTTS2-PauseControl
 
+> **中文**: [README.md](README.md)
 
-Precise pause control (`[pause:N]`) for IndexTTS2 as ComfyUI nodes.
+## What is this
 
-Write `[pause:600ms]` anywhere in the text; the corresponding pause in the
-generated audio is adjusted to 600ms with millisecond precision
-(measured: 20 segments / 40 marks, mean |error| 13ms, max 32ms).
-No whisper, no re-decoding — pure waveform-domain processing.
+IndexTTS2 is an excellent speech-synthesis model, but it has a quirk: **pause
+durations are decided by the model at random** — the same comma may pause for
+200ms one time and 500ms the next, with no way to control it.
 
-## Features
+This tool (a ComfyUI node pack) fixes that: **write your pause requirements
+directly in the text**:
 
-The core purpose of this project: **millisecond-precise pause control
-(`[pause:N]`) for IndexTTS2** — specify a pause duration at any punctuation
-and the synthesized audio is edited to match exactly (measured: 20 entries,
-40 marks, average deviation 13ms, max 32ms).
+```
+他停下脚步[pause:800ms]深吸一口气[pause:200ms]然后推开了那扇门。
+```
 
-> **Terminology**: a **segment** is a sentence-final-punctuation split unit
-> (official `split_sentences` output, code variable `segments`); a **script
-> entry** is one `# 片段 N` item of the Markdown script (one batch unit, one
-> wav; one entry may contain multiple segments — pauses between them are
-> inter-segment silence).
+After synthesis, the pause between "停下脚步" and "深吸一口气" **is 800ms**,
+and the pause after "深吸一口气" **is 200ms** — measured average deviation
+13ms (about 1/80 second, imperceptible). **Period pauses are controllable
+too.**
 
-- **`[pause:N]` precise pauses**: in-sentence and around periods, uniformly
-  supported:
-  - In-sentence marks (comma, enumeration comma): waveform-domain editing
-    in-segment (±20ms)
-  - Mark *before* a period (`…[pause:N]。`): segment-tail pause — edited
-    in-segment when hit, otherwise automatically falls back to inter-segment
-    control
-  - Mark *after* a period (`…。[pause:N]`): segment-head pause — directly
-    controlled by inter-segment silence
-  - Segment-tail fallback: on a miss, the target duration is realized via
-    inter-segment silence; for the **last segment** it is appended at the
-    audio tail
-- **Period = segment boundary**: segmentation splits at sentence-final
-  punctuation (no short-sentence merging) — every period pause is an
-  inter-segment silence: uniform `interval_silence` (default 400ms) when
-  unmarked, exact duration when marked
-- **Quote scenarios supported**: `period + quote` (`…。'`) segment tails are
-  controlled too (inter-segment fallback, no need to avoid quotes)
-- **No in-sentence splitting**: comma/period marks inside a sentence are
-  edited in the waveform domain — no re-synthesis, no sentence splitting,
-  avoiding in-sentence prosody/tone artifacts
-- **Waveform-domain pipeline**: marks → comma for the LLM → energy-based pause
-  detection → Needleman-Wunsch global alignment (affine gap + asymmetric
-  pricing + time hard-limit) → silent-core waveform editing (no re-decoding)
-
-### Additional workflow features added for practical use
-
-Capabilities added on top of precise pause control for real batch production
-(none available in the official code):
-
-- **Batch generation + candidate listening + acceptance marking**: manifest
-  resume, per-round candidates, one-click "accept round N" writing to manifest
-- **Seed fixing/reproducibility**: a fixed seed reproduces the same synthesis
-  exactly; otherwise the actual seed is recorded to a `.seed` file automatically
-- **Markdown script support**: script entries (one sentence per entry)
-  or plain multi-line text
-- **Finalization + SRT subtitles**: pick the accepted round per entry and
-  generate subtitles from real wav durations (`IndexTTSSrt`)
-- **Pause fixing**: adjust/remove pauses on generated audio by
-  `index:target-ms` or `time:target-ms` (`IndexTTSFix`)
-- **VRAM release**: unload the model before switching to video workflows
-  (`IndexTTSUnload`)
-- **Frontend dynamic dropdowns**: task dirs / entry numbers / reference audio
-  auto-enumerated, no manual path typing
+No model changes, no retraining — install the nodes and go.
 
 ## Installation
 
@@ -93,13 +49,15 @@ See `patch/修改说明.md` (Chinese) — copy the modified files from `patch/mo
 over your official files, add `patch/新增文件/pause_control.py` to
 `indextts/utils/`, then pass `pause_mode=True` to `IndexTTS2.infer(...)`.
 
-> Note: the patch is file-overwrite based, not a git diff, because official
-> code versions drift. The WebUI (Gradio) integration steps are described but
+> The patch is file-overwrite based, not a git diff, because official code
+> versions drift. The WebUI (Gradio) integration steps are described but
 > **not verified in production** — this project's production environment is ComfyUI.
 
-## Usage
+## Quick start
 
-### [pause:N] syntax
+### 1. Write marks
+
+Write `[pause:duration]` where you want a pause:
 
 ```
 他停下脚步[pause:800ms]深吸一口气[pause:200ms]然后推开了那扇门。
@@ -107,43 +65,23 @@ over your official files, add `patch/新增文件/pause_control.py` to
 ```
 
 Accepted forms: `[pause:600ms]` / `[pause:600]` / `[pause:1.5s]` / `[pause:0.8s]`
-(`[wait:]` and `[stop:]` prefixes are also accepted). Marks are replaced by a
-**full-width Chinese comma (，)** before synthesis.
+(`[wait:]` and `[stop:]` prefixes are also accepted). Marks are replaced by an
+ordinary comma during synthesis — the model never reads out "pause".
 
-**Around periods** (segment-boundary pauses, most stable):
+### 2. Generate
 
-```
-他深吸一口气[pause:800ms]。然后推开了门。    ← before the period (segment tail)
-他深吸一口气。[pause:800ms]然后推开了门。    ← after the period (segment head)
-```
-
-Period pauses are inter-segment silence: `interval_silence` (default 400ms)
-when unmarked, exact mark duration when marked. **Quote scenarios**
-(`…。'`) are supported too — no need to avoid them.
-
-**Duration range**: recommended **150ms – 5s**. Lower bound ≈100ms (energy
-detection minimum; <150ms measures slightly high including weak tails);
-no hard upper bound (silence insertion in the waveform domain — 1s/2s/5s all
-work; >5s is rarely useful).
-
-**Chinese and English both work**: marks are always replaced with a Chinese
-comma; English sentences are verified to work precisely as well (800ms target
-→ 778ms measured) — the model treats the comma as a pause marker regardless
-of language.
-
-### ComfyUI workflow
+Wire the workflow in ComfyUI (examples in `workflows/`):
 
 ```
-IndexTTSLoader → IndexTTSSingle(pause_mode=on) → PreviewAudio
-IndexTTSLoader → IndexTTSBatch(pause_mode=on) → IndexTTSListen(listen/accept) → PreviewAudio×3
+IndexTTSLoader → IndexTTSSingle (turn pause_mode on) → PreviewAudio
 ```
 
-Example workflows: `workflows/` (set `spk_ref` to your own reference audio).
+After importing an example workflow, set `spk_ref` to your own reference audio.
 
-### Effect comparison (bilingual)
+### 3. Listen to the comparison
 
-`examples/audio/` contains 4 comparison clips (same seed, same voice; the only
-difference is the `[pause:]` marks):
+`examples/audio/` contains 4 clips (same voice, same seed; the only difference
+is the marks):
 
 | File | Text | Measured pauses |
 |------|------|-----------------|
@@ -152,10 +90,6 @@ difference is the `[pause:]` marks):
 | `en_plain.wav` | He stopped and took a deep breath. | 80/309ms (natural) |
 | `en_pause.wav` | He stopped[pause:800ms]and took a deep breath. | **798ms (precise)** |
 
-Reference voice: a third-party collected voice (not the author's own voice).
-Regenerate with your own reference via
-`examples/make_compare_demo.py --model-dir <models> --spk-ref <ref audio>`.
-
 **Waveform comparison** (click a waveform to download and listen):
 
 | Chinese | English |
@@ -163,25 +97,72 @@ Regenerate with your own reference via
 | [![zh_plain waveform](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain (no pause) | [![en_plain waveform](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain (no pause) |
 | [![zh_pause waveform](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause (with pause) | [![en_pause waveform](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause (with pause) |
 
-### Node parameters
+Reference voice: a third-party collected voice (not the author's own voice).
+Regenerate with your own reference via
+`examples/make_compare_demo.py --model-dir <models> --spk-ref <ref audio>`.
 
-| Node | Parameter | Description |
-|------|-----------|-------------|
-| IndexTTSSingle | `pause_mode` | Enable `[pause:N]` precise pause control |
-| IndexTTSSingle | `detect_cfm_steps` | **Deprecated** (no effect in waveform version), kept for compatibility |
-| IndexTTSBatch | `pause_mode` | Enable for batch; skips legacy whisper post-processing |
-| IndexTTSBatch | `rounds` | Candidate rounds per segment |
-| IndexTTSBatch | `interval_silence` | Inter-segment silence ms (period pauses = this value after period-based segmentation, default 400) |
-| IndexTTSListen | `task_dir` | Connect to batch node's task_dir output (takes priority) |
-| IndexTTSListen | `accept_round` | Acceptance mark: 0=listen only; 1/2/3=mark that round accepted (written to manifest.json) |
-| IndexTTSUnload | `model` | Release IndexTTS model VRAM (call after TTS, before video workflows) |
-| IndexTTSFix | `marks` | Pause fix string: `2:800, 3:0` (index:target-ms, 0=delete) or `7.53:500` (time:target-ms). Index mode needs the pause records written by the legacy whisper path; waveform pause_mode leaves them empty — use the time mode |
-| IndexTTSSrt | `chosen` | Finalization: `1,2,1,3` (round per entry, in order); single `3` = all round 3; empty = all round 1. SRT built from real wav durations |
+### More about marks
+
+**Around periods** (most stable; both forms are precise):
+
+```
+他深吸一口气[pause:800ms]。然后推开了门。    ← before the period
+他深吸一口气。[pause:800ms]然后推开了门。    ← after the period
+```
+
+**Duration range**: recommended **150ms – 5s** (lower bound ≈100ms; no hard
+upper bound — 1s/2s/5s all work).
+
+**Chinese and English both work**: English is verified precise too (800ms
+target → 778ms measured).
+
+## Feature overview
+
+**Core — precise pause control**:
+
+- **In-sentence pauses** (commas): precise, ±20ms
+- **Around periods**: both before-period and after-period forms work; even if
+  the model produces no natural pause there, the target duration is realized
+  via inter-sentence silence — **the duration is reached whether or not the
+  model pauses**
+- **Quote scenarios**: `period + quote` (`…。'`) is controllable too — no need
+  to avoid quotes
+- **Uniform period pauses**: without marks, every period pause is the same
+  `interval_silence` (default 400ms, steady) — set the overall rhythm first,
+  then override individual periods with marks
+
+**Production workflow capabilities** (for long-form content):
+
+- **Batch generation**: Markdown script or multi-line text; resumable
+- **Candidate rounds**: N candidates per entry (rounds); listen per round
+- **Acceptance marking**: one-click "round N accepted" (written to manifest
+  for downstream concatenation)
+- **Seed reproducibility**: a fixed seed reproduces the exact same audio;
+  random runs record the actual seed automatically
+- **SRT subtitles**: generated from accepted rounds and real wav durations
+- **Pause fixing**: adjust/remove a pause on existing audio by index or time
+- **VRAM release**: unload the model before switching to video workflows
+
+## Advanced usage
+
+### Batch generation + candidate listening + acceptance
+
+Workflow:
+
+```
+IndexTTSLoader → IndexTTSBatch (pause_mode on, rounds=3) → IndexTTSListen → PreviewAudio×3
+```
+
+- `IndexTTSBatch` generates from a Markdown script (`segments_md` = file path)
+  or multi-line `text`
+- Each entry gets `rounds` candidates (`001_1.wav`, `001_2.wav`, `001_3.wav`)
+- `IndexTTSListen` picks an entry, listens to the 3 candidates; `accept_round`
+  = 1/2/3 marks "round N accepted" (written to manifest.json for downstream
+  concatenation / subtitles)
 
 ### Markdown script format
 
-`segments_md` accepts a Markdown script file (fill the path in the
-`IndexTTSBatch` node's `segments_md` field):
+`segments_md` accepts a Markdown script file:
 
 ```markdown
 ---
@@ -200,18 +181,16 @@ max_text_tokens_per_segment: 120
 <!-- 处理后: 标准同样严苛[pause:800ms]不多一分。 -->
 ```
 
-- **YAML header** (optional metadata): story / voice_ref / emotion_base /
-  emotions / speaking_speed / max_text_tokens_per_segment
-- **Entry title**: `# 片段 N [role / emotion]` — N is the entry index;
-  `[role / emotion]` is used for emotion-reference selection (the
-  "random per directory" strategy picks from the emotion subdirectory)
-- **Body**: the text to synthesize, `[pause:N]` marks kept as-is; if
-  `<!-- 处理后: ... -->` is present, its content takes priority (the body
-  can be a display draft, the processed content goes to synthesis)
-- **One sentence per entry is recommended** (period pauses are uniformly
-  controlled by inter-segment silence)
-- Without a script file, you can write plain text in the `text` field
-  (one line = one entry)
+- **YAML header** (optional): story / voice_ref / emotion_base / emotions /
+  speaking_speed / max_text_tokens_per_segment
+- **Entry title**: `# 片段 N [role / emotion]` — the emotion is used for
+  emotion-reference selection ("random per directory" strategy)
+- **Body**: the text to synthesize, `[pause:N]` kept as-is; if
+  `<!-- 处理后: ... -->` is present, its content takes priority
+- **One sentence per entry is recommended** (period pauses uniformly
+  controlled by inter-sentence silence)
+- Without a script file, write plain text in the `text` field (one line =
+  one entry)
 
 ### Batch output
 
@@ -230,37 +209,54 @@ output/batch_20260807_120000/
 ```
 
 - Naming: `{entry:03d}_{round}.wav` (`001_1` = entry 1, round 1)
-- Listen to candidates with the `IndexTTSListen` node; `accept_round` marks
-  "round N accepted" (written to manifest.json for downstream concatenation)
-- Re-running the same task directory resumes (finished rounds are skipped;
+- Re-running the same task directory resumes (finished rounds skipped;
   parameter changes trigger a full re-run)
+
+### Node parameters
+
+| Node | Parameter | Description |
+|------|-----------|-------------|
+| IndexTTSSingle | `pause_mode` | Enable `[pause:N]` precise pause control |
+| IndexTTSSingle | `detect_cfm_steps` | Deprecated (no effect), kept for compatibility |
+| IndexTTSBatch | `pause_mode` | Enable for batch; skips legacy post-processing |
+| IndexTTSBatch | `rounds` | Candidate rounds per entry |
+| IndexTTSBatch | `interval_silence` | Period pause ms when unmarked (default 400) |
+| IndexTTSListen | `task_dir` | Connect to batch node's task_dir output (takes priority) |
+| IndexTTSListen | `accept_round` | Acceptance: 0=listen only; 1/2/3=mark that round accepted (written to manifest.json) |
+| IndexTTSUnload | `model` | Release model VRAM (after TTS, before video workflows) |
+| IndexTTSFix | `marks` | Pause fix: `2:800, 3:0` (index:target-ms, 0=delete) or `7.53:500` (time:target-ms) |
+| IndexTTSSrt | `chosen` | Finalization: `1,2,1,3` (round per entry); single `3` = all round 3; empty = all round 1 |
 
 ### Suggested text organization
 
-- Split the script into **one sentence per entry**; period pauses are
-  uniformly controlled by inter-segment silence (`interval_silence`)
-- For a precise period pause, write a mark: `句子[pause:800ms]。` (before the
-  period) or `句子。[pause:800ms]` (after the period) — both are precise
-- In-sentence pauses (commas) use `[pause:N]` directly, edited in-segment
-- Long multi-mark sentences (>40 chars): if an individual mark misses due to
-  model pause fluctuation, change the seed or pick from the round candidates
+- **One sentence per entry**; period pauses default to the uniform
+  `interval_silence`, override individual periods with marks
+- In-sentence pauses: write `[pause:N]` directly
+- Long multi-mark sentences (>40 chars): an individual mark may miss due to
+  model pause fluctuation — change the seed or pick from the round candidates
   (with rounds=3 there is usually a fully-hit candidate)
 
 ## How it works (brief)
 
-1. **Segmentation**: split at sentence-final punctuation (period = segment
-   boundary, no short-sentence merging; in-sentence stays intact for prosody)
+For those interested; not needed for daily use:
+
+1. **Segmentation**: text is split at sentence-final punctuation (period =
+   segment boundary; in-sentence stays intact for prosody)
 2. **Mark classification**: in-sentence marks → in-segment processing;
    before/after-period marks → segment-boundary processing
-3. **In-segment**: marks → commas → synthesis → energy-based pause detection
-   (physical signal, 10ms frames) → Needleman-Wunsch alignment (affine gap,
-   asymmetric pricing, 0.8s time hard-limit) → silent-core extend/shrink/insert
-   (no re-decoding)
-4. **Segment boundary**: tail mark hit → skip inter-segment silence (no
-   stacking); miss → realize target via inter-segment silence; last segment
-   miss → append silence at the audio tail
-5. **Concatenation**: inter-segment silence = `interval_silence` (default
+3. **In-segment**: marks → commas → normal synthesis → pauses are located by
+   energy detection (physical signal, no ASR) → marks are globally aligned to
+   pauses (tolerating extra/missing pauses) → only the "silent core" of each
+   pause is extended/shrunk/inserted (speech untouched, no re-decoding)
+4. **Segment boundary**: tail mark hit → skip inter-sentence silence (no
+   stacking); miss → realize the target via inter-sentence silence; last
+   segment miss → append silence at the audio tail
+5. **Concatenation**: inter-sentence silence = `interval_silence` (default
    400ms); gaps covered by marks use the mark duration
+
+> **Terminology**: a **segment** is a sentence-final-punctuation split unit
+> (official `split_sentences` output); a **script entry** is one `# 片段 N`
+> item of the Markdown script (one entry may contain multiple segments).
 
 Full details, parameter calibration and accuracy data:
 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md). Terminology-to-code
@@ -270,34 +266,28 @@ mapping and the data flow: [docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md).
 
 - **Long single sentences with many marks**: positions are estimated by
   character-ratio; on long sentences (>40 chars) the error may exceed the
-  match limit (0.8s) and an individual mark may miss — change the seed or
-  pick from round candidates
-- **No pause at a segment tail**: on a miss the target is still realized via
-  inter-segment silence / tail append, but the pause lands at the period
-  rather than right after the marked word — correct to the ear, slightly
-  off-position
-- The model may naturally insert a breath after a long pause; breaths have
-  higher energy than silence and are not detected/edited (natural prosody —
-  use post-processing denoise to remove if needed)
-- Insertion requires a real silence at the target (energy-valley guard);
-  refused when speech is continuous (rather than cutting words)
-- Short pauses (<250ms) measure slightly high (weak tail included), within ±30ms
+  match limit and an individual mark may miss — change the seed or pick from
+  round candidates
+- **No pause at a segment tail**: the target is still realized via
+  inter-sentence silence / tail append (duration reached), but the pause
+  lands at the period rather than right after the marked word — correct to
+  the ear, slightly off-position
+- **Breath after a long pause**: natural model behavior (may inhale); breaths
+  are not silence and are not edited — denoise the segment if you mind
+- **Insertion needs real silence**: no insertion into continuous speech
+  (refuse rather than cut words)
 
 ## Tests
 
 `test/` provides three layers:
 
 ```bash
-python test/unit_test.py    # core-function unit tests (no GPU/model, CI runs automatically, 30+ asserts)
+python test/unit_test.py    # core-function unit tests (no GPU/model, CI runs automatically)
 python test/smoke_test.py --model-dir <models> --spk-ref <ref audio>   # bilingual smoke
-python test/regression_test.py --model-dir <models> --spk-ref <ref audio>  # 5-segment regression
+python test/regression_test.py --model-dir <models> --spk-ref <ref audio>  # 5-entry regression
 ```
 
-`unit_test.py` covers mark parsing / pause detection / NW alignment / waveform
-editing (incl. edge cases: empty audio, short silence, no pauses, coordinate
-regression) — verifies the core logic without a model; smoke/regression need
-GPU + model weights (fixed seeds, reproducible). Released build: smoke zh/en
-PASS; regression 5 segments average deviation 5ms.
+Released build: smoke zh/en PASS; regression 5 entries average deviation 5ms.
 
 ## Acknowledgements
 
