@@ -29,6 +29,18 @@
 已开启 ③ 目标位置存在停顿或真静音（模型完全没停且无静音间隙时插入会被
 拒绝——改写文本或换 seed 重试）。
 
+**Q：WebUI（整合包）用户怎么用？**
+本项目生产环境是 ComfyUI，WebUI 接入方式未实际部署验证。按 `patch/修改说明.md`
+打补丁后（覆盖 `infer_v2.py`/`front.py`/`pause_control.py`），在 webui.py 的
+生成函数里给 `infer()` 加一行 `pause_mode=True`：
+```python
+tts.infer(..., text="他停下脚步[pause:800ms]深吸一口气。", pause_mode=True)
+```
+⚠️ **不开 `pause_mode` 时 `[pause:N]` 会被模型当普通文本朗读**（听到
+"pause 800ms"），不是静默失效——必须显式开启。如打补丁后报
+`unexpected keyword argument 'seed'/'pause_mode'`，说明 `infer_v2.py`
+未被覆盖，请确认补丁文件已就位。
+
 **Q：支持的时长范围？**
 推荐 150ms ~ 5s。下限约 100ms（检测下限）；上限无硬限制（波形插静音）。
 
