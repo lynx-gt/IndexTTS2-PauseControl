@@ -4,8 +4,7 @@
 
 ## 这是什么
 
-IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**——同一个逗号，
-不同次生成可能停顿 200ms 或 500ms，无法按需求指定。
+IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**——同一个逗号，不同次生成可能停顿 200ms 或 500ms，无法按需求指定。
 
 本工具（ComfyUI 节点包）提供**精确停顿控制**：在文本中直接指定停顿要求：
 
@@ -13,16 +12,11 @@ IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**
 他停下脚步[pause:800ms]深吸一口气[pause:200ms]然后推开了那扇门[pause:600ms]。
 ```
 
-生成后，"停下脚步"后停顿 800ms，"深吸一口气"后 200ms，句号前（"那扇门"后）
-600ms——实测平均偏差 13ms。句中、句号前后均可用同一方式指定。
+生成后，"停下脚步"后停顿 800ms，"深吸一口气"后 200ms，句号前（"那扇门"后）600ms——实测平均偏差 13ms。句中、句号前后均可用同一方式指定。
 
-模型在个别位置可能断句不稳定——应停顿处未停顿、或在无标点处出现停顿。
-标记不受标点限制：可在任意位置（包括无标点处）指定停顿，生成时由模型
-在该处产生停顿并精确调整为目标时长。
+模型在个别位置可能断句不稳定——应停顿处未停顿、或在无标点处出现停顿。标记不受标点限制：可在任意位置（包括无标点处）指定停顿，生成时由模型在该处产生停顿并精确调整为目标时长。
 
-官方句间静音参数（`interval_silence`）默认 200ms，短于句中逗号的模型自然
-停顿（约 300ms）——会出现**句号停顿反而比逗号短**的倒挂。本项目节点默认
-400ms（与句号的自然停顿接近），并可对句号处写标记精确覆盖。
+官方句间静音参数（`interval_silence`）默认 200ms，短于句中逗号的模型自然停顿（约 300ms）——会出现**句号停顿反而比逗号短**的倒挂。本项目节点默认400ms（与句号的自然停顿接近），并可对句号处写标记精确覆盖。
 
 无需修改模型、无需重新训练，安装节点即可使用。
 
@@ -30,31 +24,23 @@ IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**
 
 ### 方式一：完整包（开箱即用，推荐）
 
-1. 将本仓库目录（即 `IndexTTS2-PauseControl/`）放到 ComfyUI 的 `custom_nodes/` 下，
-   目录名保持 `IndexTTS2-PauseControl`
-   （⚠️ 如已存在同名目录请先备份——覆盖会替换旧内容）
+1. 将本仓库目录（即 `IndexTTS2-PauseControl/`）放到 ComfyUI 的 `custom_nodes/` 下，目录名保持 `IndexTTS2-PauseControl`（⚠️ 如已存在同名目录请先备份——覆盖会替换旧内容）
 2. 安装依赖到 ComfyUI 的 Python 环境（见 `requirements.txt`）
 3. 运行 `python install.py`（自动装依赖 + 检查模型目录），或手动按 `requirements.txt` 安装
-4. 下载 IndexTTS2 模型权重到 `ComfyUI/models/index_tts/`
-   （模型来源见官方 [index-tts/index-tts](https://github.com/index-tts/index-tts)，权重不属于本仓库）
+4. 下载 IndexTTS2 模型权重到 `ComfyUI/models/index_tts/`（模型来源见官方 [index-tts/index-tts](https://github.com/index-tts/index-tts)，权重不属于本仓库）
 5. 重启 ComfyUI
 
-> 也支持 **ComfyUI-Manager** 一键安装（搜索 `IndexTTS2-PauseControl`）。
->
-> ⚠️ 请以**目录方式运行**（放 `custom_nodes/` 下），**不要 `pip install .`**——本项目
-> 包名与官方 `indextts` 同名，pip 安装会覆盖官方推理包。
+> 也支持 **ComfyUI-Manager** 一键安装（搜索 `IndexTTS2-PauseControl`）。⚠️ 请以**目录方式运行**（放 `custom_nodes/` 下），**不要 `pip install .`**——本项目包名与官方 `indextts` 同名，pip 安装会覆盖官方推理包。
 
 ### 方式二：打补丁（已有官方 indextts 包的用户）
 
-如果你已有官方 IndexTTS2 推理代码（官方整合包 / 官方 ComfyUI 节点 / 自建管线），
-只需应用本仓库 `patch/` 目录下的修改：
+如果你已有官方 IndexTTS2 推理代码（官方整合包 / 官方 ComfyUI 节点 / 自建管线），只需应用本仓库 `patch/` 目录下的修改：
 
 1. 将 `patch/modified/` 中列出的文件**覆盖**到你的 indextts 包对应位置
 2. 将 `patch/新增文件/` 中列出的文件复制到对应目录
 3. 调用 `IndexTTS2.infer(...)` 时传入 `pause_mode=True` 即可（见 `patch/修改说明.md`）
 
-> 补丁采用「完整文件覆盖 + 修改说明」而非 git diff——官方代码版本会漂移，
-> 覆盖文件更可靠。
+> 补丁采用「完整文件覆盖 + 修改说明」而非 git diff——官方代码版本会漂移，覆盖文件更可靠。
 
 ## 快速开始
 
@@ -67,9 +53,7 @@ IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**
 他停下来[pause:1.5s]深吸一口气。
 ```
 
-支持的写法：`[pause:600ms]` / `[pause:600]` / `[pause:1.5s]` / `[pause:0.8s]`
-（也兼容 `[wait:]`、`[stop:]` 前缀）。生成时标记会被替换成普通逗号送入模型，
-不会读出"pause"之类的字。
+支持的写法：`[pause:600ms]` / `[pause:600]` / `[pause:1.5s]` / `[pause:0.8s]`（也兼容 `[wait:]`、`[stop:]` 前缀）。生成时标记会被替换成普通逗号送入模型，不会读出"pause"之类的字。
 
 ### 2. 生成
 
@@ -99,8 +83,7 @@ IndexTTSLoader → IndexTTSSingle（打开 pause_mode） → PreviewAudio
 | [![zh_plain 波形](examples/audio/zh_plain.png)](examples/audio/zh_plain.wav)<br>zh_plain（无 pause） | [![en_plain 波形](examples/audio/en_plain.png)](examples/audio/en_plain.wav)<br>en_plain（无 pause） |
 | [![zh_pause 波形](examples/audio/zh_pause.png)](examples/audio/zh_pause.wav)<br>zh_pause（有 pause） | [![en_pause 波形](examples/audio/en_pause.png)](examples/audio/en_pause.wav)<br>en_pause（有 pause） |
 
-参考音色来自第三方收集音色（非本项目作者声音）。也可用
-`examples/make_compare_demo.py` 配合你自己的参考音频重新生成。
+参考音色来自第三方收集音色（非本项目作者声音）。也可用`examples/make_compare_demo.py` 配合你自己的参考音频重新生成。
 
 ### 标记的更多细节
 
@@ -120,13 +103,9 @@ IndexTTSLoader → IndexTTSSingle（打开 pause_mode） → PreviewAudio
 **核心能力——精确控制停顿**：
 
 - **句中停顿**（逗号、顿号处）：精确调整，±20ms
-- **句号前后停顿**：句号前、句号后两种写法都支持；即使模型在该处没有自然停顿，
-  也会自动用"句间静音"实现目标时长——**模型停不停都能达到你要的时长**
+- **句号前后停顿**：句号前、句号后两种写法都支持；即使模型在该处没有自然停顿，也会自动用"句间静音"实现目标时长——**模型停不停都能达到你要的时长**
 - **引号场景**：`句号+引号`（`…。'`）处同样可控，不用刻意避开
-- **统一句号停顿**：不写标记时，句号处停顿由 `interval_silence` 统一控制
-  （默认 400ms）。官方默认 200ms 时，段间停顿短于句中逗号的模型自然停顿
-  （约 300ms），会出现句号停顿反而比逗号短的倒挂；400ms 与句号的自然停顿
-  更接近，听感自然。适合先定整体节奏，再对个别句号精确覆盖
+- **统一句号停顿**：不写标记时，句号处停顿由 `interval_silence` 统一控制（默认 400ms）。官方默认 200ms 时，段间停顿短于句中逗号的模型自然停顿（约 300ms），会出现句号停顿反而比逗号短的倒挂；400ms 与句号的自然停顿更接近，听感自然。适合先定整体节奏，再对个别句号精确覆盖
 
 **配套的生产流程能力**（做长篇内容时用得上）：
 
@@ -150,8 +129,7 @@ IndexTTSLoader → IndexTTSBatch（打开 pause_mode，rounds=3） → IndexTTSL
 
 - `IndexTTSBatch` 按分句稿（`segments_md` 填文件路径）或 `text` 多行文本批量生成
 - 每段生成 `rounds` 轮候选（如 `001_1.wav`、`001_2.wav`、`001_3.wav`）
-- `IndexTTSListen` 选片段号试听 3 个候选；`accept_round` 填 1/2/3 标记
-  "第 N 轮通过验收"（写入 manifest.json，供后续拼接/字幕流程选用）
+- `IndexTTSListen` 选片段号试听 3 个候选；`accept_round` 填 1/2/3 标记"第 N 轮通过验收"（写入 manifest.json，供后续拼接/字幕流程选用）
 
 ### 分句稿格式（Markdown）
 
@@ -214,11 +192,9 @@ output/批量生成_20260807_120000/
 
 ### 建议的文本组织方式
 
-- 分句稿**一句一个片段**；句号停顿默认统一（`interval_silence`），个别要精确的
-  写标记覆盖
+- 分句稿**一句一个片段**；句号停顿默认统一（`interval_silence`），个别要精确的写标记覆盖
 - 句内停顿直接写 `[pause:N]`
-- 长句（>40 字）多标记时，个别标记可能因模型停顿波动未命中——换 seed 或从
-  多轮候选中挑（rounds=3 通常有全命中的候选）
+- 长句（>40 字）多标记时，个别标记可能因模型停顿波动未命中——换 seed 或从多轮候选中挑（rounds=3 通常有全命中的候选）
 
 ## 工作原理（简述）
 
@@ -226,27 +202,19 @@ output/批量生成_20260807_120000/
 
 1. **分句**：文本按标点句切分（句号=分句边界；句内不切，保持语气连贯）
 2. **标记分类**：句中标记 → 分句内处理；句号前/后标记 → 分句边界处理
-3. **分句内处理**：标记转逗号 → 模型正常生成 → 用能量检测找出音频里的停顿
-   （物理信号，不依赖识别模型）→ 把标记与停顿全局对齐（容忍模型多停/漏停）
-   → 只对停顿的"静音核心"做延长/缩短/插入（不碰语音，免重新解码）
-4. **分句边界处理**：分句尾标记命中则跳过句间静音（防叠加），未命中则用
-   句间静音补目标时长；最后一个分句未命中时在音频末尾追加静音
+3. **分句内处理**：标记转逗号 → 模型正常生成 → 用能量检测找出音频里的停顿（物理信号，不依赖识别模型）→ 把标记与停顿全局对齐（容忍模型多停/漏停）→ 只对停顿的"静音核心"做延长/缩短/插入（不碰语音，免重新解码）
+4. **分句边界处理**：分句尾标记命中则跳过句间静音（防叠加），未命中则用句间静音补目标时长；最后一个分句未命中时在音频末尾追加静音
 5. **拼接**：句间静音 = `interval_silence`（默认 400ms），被标记覆盖的间隙用标记时长
 
-> **术语**：**分句**（segment）= 按标点切出的标点句（官方 `split_sentences` 输出）；
-> **片段** = 分句稿中的 `# 片段 N` 条目（一个片段可能含多个分句）。
+> **术语**：**分句**（segment）= 按标点切出的标点句（官方 `split_sentences` 输出）；**片段** = 分句稿中的 `# 片段 N` 条目（一个片段可能含多个分句）。
 
-详细方案、参数标定与精度数据见 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md)；
-术语与代码符号对照、数据流见 [docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md)。
+详细方案、参数标定与精度数据见 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md)；术语与代码符号对照、数据流见 [docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md)。
 
 ## 已知限制
 
-- **长单句多标记**：标记位置按字符比例估算，长句（>40 字）误差可能超过匹配上限，
-  个别标记可能未命中——换 seed 或从多轮候选中挑选即可覆盖
-- **分句尾模型无停顿**：会改用句间静音/末尾追加实现目标时长（时长仍达成），
-  但停顿位置落在句号处而非标记字后——听感正确，位置略偏
-- **长停顿后的换气声**：模型自然韵律（长停顿后可能吸气），工具不处理呼吸声，
-  介意可对该段做降噪后处理
+- **长单句多标记**：标记位置按字符比例估算，长句（>40 字）误差可能超过匹配上限，个别标记可能未命中——换 seed 或从多轮候选中挑选即可覆盖
+- **分句尾模型无停顿**：会改用句间静音/末尾追加实现目标时长（时长仍达成），但停顿位置落在句号处而非标记字后——听感正确，位置略偏
+- **长停顿后的换气声**：模型自然韵律（长停顿后可能吸气），工具不处理呼吸声，介意可对该段做降噪后处理
 - **插入需要真静音**：语音连续处无法插入停顿（宁缺毋滥，不切字）
 
 ## 测试
@@ -263,8 +231,7 @@ python test/regression_test.py --model-dir <模型目录> --spk-ref <参考音�
 
 ## 致谢
 
-- **[bilibili IndexTTS2 团队](https://github.com/index-tts/index-tts)**：模型与推理代码
-  （本项目的 `indextts/` 基于其开源实现修改）
+- **[bilibili IndexTTS2 团队](https://github.com/index-tts/index-tts)**：模型与推理代码（本项目的 `indextts/` 基于其开源实现修改）
 - **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)**：节点框架
 - **[NVIDIA BigVGAN](https://github.com/NVIDIA/bigvgan)**、**[Amphion MaskGCT](https://github.com/amphion-ai/amphion)**：推理组件
 - 序列比对算法：Needleman & Wunsch (1970)、Gotoh (1982)（详见 [docs/PAUSE_CONTROL.md](docs/PAUSE_CONTROL.md) §8）
@@ -275,6 +242,4 @@ python test/regression_test.py --model-dir <模型目录> --spk-ref <参考音�
 ## License
 
 - 本项目原创部分（ComfyUI 节点、pause 方案、文档）：MIT License（见 `LICENSE`）
-- `indextts/` 推理代码：源自 bilibili IndexTTS2，受 **bilibili Model Use License
-  Agreement** 约束（商用需官方授权等），完整条款见 `LICENSE.bilibili.txt` 与
-  `THIRD_PARTY_NOTICES.md`
+- `indextts/` 推理代码：源自 bilibili IndexTTS2，受 **bilibili Model Use LicenseAgreement** 约束（商用需官方授权等），完整条款见 `LICENSE.bilibili.txt` 与`THIRD_PARTY_NOTICES.md`
