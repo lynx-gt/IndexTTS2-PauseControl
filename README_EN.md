@@ -113,12 +113,12 @@ pauses between sentences are controlled at concatenation time. Use
 `[pause:N]` for intra-sentence precision.
 
 
-**Listen directly** (waveform videos, click to play):
+**Listen directly** (click to play in the GitHub file viewer):
 
 | Chinese | English |
 |---------|---------|
-| <video controls width="360" src="examples/audio/zh_plain.mp4"></video><br>zh_plain (no pause) | <video controls width="360" src="examples/audio/en_plain.mp4"></video><br>en_plain (no pause) |
-| <video controls width="360" src="examples/audio/zh_pause.mp4"></video><br>zh_pause (with pause) | <video controls width="360" src="examples/audio/en_pause.mp4"></video><br>en_pause (with pause) |
+| [▶ zh_plain.wav (no pause)](examples/audio/zh_plain.wav) | [▶ en_plain.wav (no pause)](examples/audio/en_plain.wav) |
+| [▶ zh_pause.wav (with pause)](examples/audio/zh_pause.wav) | [▶ en_pause.wav (with pause)](examples/audio/en_pause.wav) |
 
 ## How it works (brief)
 
