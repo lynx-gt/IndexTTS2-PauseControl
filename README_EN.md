@@ -4,23 +4,22 @@
 
 ## What is this
 
-IndexTTS2 is an excellent speech-synthesis model, but it has a quirk: **pause
-durations are decided by the model at random** — the same comma may pause for
-200ms one time and 500ms the next, with no way to control it.
+In IndexTTS2 speech synthesis, **pause durations are decided by the model and
+cannot be controlled** — the same comma may pause for 200ms in one run and
+500ms in another, with no way to specify a requirement.
 
-This tool (a ComfyUI node pack) fixes that: **write your pause requirements
-directly in the text**:
+This tool (a ComfyUI node pack) provides **precise pause control**: specify
+pause requirements directly in the text:
 
 ```
 他停下脚步[pause:800ms]深吸一口气[pause:200ms]然后推开了那扇门。
 ```
 
-After synthesis, the pause between "停下脚步" and "深吸一口气" **is 800ms**,
-and the pause after "深吸一口气" **is 200ms** — measured average deviation
-13ms (about 1/80 second, imperceptible). **Period pauses are controllable
-too.**
+After synthesis, the pause between "停下脚步" and "深吸一口气" is 800ms, and
+the pause after "深吸一口气" is 200ms — measured average deviation 13ms.
+**Period pauses are controllable too.**
 
-No model changes, no retraining — install the nodes and go.
+No model changes, no retraining — install the nodes and use them.
 
 ## Installation
 
