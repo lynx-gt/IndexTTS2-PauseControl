@@ -828,8 +828,10 @@ class IndexTTS2:
                     pauses_raw = pause_control.detect_pauses(wav_det_np, sampling_rate)
                     n_chars = max(len(text), 1)
                     wav_dur = wav_det_np.shape[-1] / sampling_rate
-                    # 标记预期位置（时间域：字符比例 × 音频时长）
-                    marks_pos = [(ch_off / n_chars * wav_dur, ms, side) for ch_off, ms, side in seg_marks]
+                    # 标记预期位置（时间域：段内字符比例 × 本段时长。
+                    # 分句后全局比例会漂移，段内比例对中文精确）
+                    marks_pos = [(ch_off / max(seg_chars, 1) * wav_dur, ms, side)
+                                 for ch_off, seg_chars, ms, side in seg_marks]
                     print(f">> [pause] seg_marks={seg_marks} n_chars={n_chars} wav_dur={wav_dur:.2f}s "
                           f"sent_tokens={len(sent)}")
                     # 停顿段（时间域）；中点 = 起点 + 时长ms/2000（ms→s 再取半）
@@ -935,9 +937,12 @@ class IndexTTS2:
             return (sampling_rate, wav_data)
 
     def _distribute_pause_marks(self, marks, text_tokens_list, segments):
-        """把 [pause:] 标记的字符位置分配到 (segment_idx, seg内字符偏移)。
-        基于 token 字符串长度累计（中文字符精确），返回段内字符偏移，
-        供预期位置用"字符比例×codes_len"计算（token 比例偏差大，不可用）。
+        """把 [pause:] 标记分配到 (segment_idx, 段内字符偏移, 段字符数, ms, side)。
+
+        基于 token 字符串长度累计定位（中文字符 = token，长度精确）。
+        返回段内偏移与段字符数——marks_pos 用段内比例（段内偏移/段字符数
+        × 本段时长）计算预期位置；用全局比例在分句后会漂移（跨段标记偏差
+        可达 1s+，超出 NW 时间硬上限导致静默失效）。
         """
         tok_offsets = []
         acc = 0
@@ -956,13 +961,13 @@ class IndexTTS2:
                 ti += 1
             for si, (a, b) in enumerate(seg_ranges):
                 if a <= ti < b:
-                    # 保留全局字符位置（marks_pos 用全局比例 × codes_len，token 拼接长度不可用）
-                    out[si].append((char_pos, ms, _side))
+                    out[si].append((char_pos - a, b - a, ms, _side))
                     break
             else:
                 # 越界（标记贴近段尾）：挂到最后一段末位
                 if segments:
-                    out[-1].append((char_pos, ms, _side))
+                    a, b = seg_ranges[-1]
+                    out[-1].append((b - a, b - a, ms, _side))
         return out
 
     def _s2mel_wav(self, latent, codes, code_lens, diffusion_steps, inference_cfg_rate,
