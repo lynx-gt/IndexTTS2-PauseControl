@@ -24,7 +24,7 @@ IndexTTS2 的语音合成中，**停顿长短由模型自行决定且不可控**
 
 ### 方式一：完整包（开箱即用，推荐）
 
-1. **ComfyUI-Manager 搜索安装**：节点已上架官方 Comfy Registry，在 Manager 中搜索 `IndexTTS2-PauseControl` 一键安装；或手动安装：将本仓库目录（即 `IndexTTS2-PauseControl/`）放到 ComfyUI 的 `custom_nodes/` 下，目录名保持 `IndexTTS2-PauseControl`（⚠️ 如已存在同名目录请先备份——覆盖会替换旧内容）
+1. **ComfyUI-Manager 搜索安装**：节点已上架官方 Comfy Registry，在 Manager 中搜索 `IndexTTS2-PauseControl` 一键安装。⚠️ **新上架节点可能暂未进入 Manager 的搜索索引（偶尔会搜不到）**，搜不到时请直接采用下面的手动安装：将本仓库目录（即 `IndexTTS2-PauseControl/`）放到 ComfyUI 的 `custom_nodes/` 下，目录名保持 `IndexTTS2-PauseControl`（⚠️ 如已存在同名目录请先备份——覆盖会替换旧内容）
 2. 安装依赖到 ComfyUI 的 Python 环境（见 `requirements.txt`）
 3. 运行 `python install.py`（自动装依赖 + 检查模型目录），或手动按 `requirements.txt` 安装
 4. 下载 IndexTTS2 模型权重到 `ComfyUI/models/index_tts/`（模型来源见官方 [index-tts/index-tts](https://github.com/index-tts/index-tts)，权重不属于本仓库）
