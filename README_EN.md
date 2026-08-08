@@ -62,14 +62,14 @@ official ComfyUI nodes / your own pipeline), apply the modifications under
   effect as Option 1)
 - **Non-ComfyUI users** (Gradio WebUI packs, custom APIs, etc.): after
   patching, pass `pause_mode=True` to `IndexTTS2.infer(...)` to get the
-  `[pause:N]` capability (see `patch/修改说明.md`; the WebUI integration is
+  `[pause:N]` capability (see `patch/PATCH_GUIDE.md`; the WebUI integration is
   not verified in production)
 
 Steps: copy the modified files from `patch/modified/` over your official
-files, add `patch/新增文件/pause_control.py` to `indextts/utils/` (details in
-`patch/修改说明.md`, Chinese), then pass `pause_mode=True`.
+files, add `patch/new_files/pause_control.py` to `indextts/utils/` (details in
+`patch/PATCH_GUIDE.md`, Chinese), then pass `pause_mode=True`.
 
-> The patch is file-overwrite based, not a git diff, because official code
+> The patch is file-overwrite based with a guide, not a git diff, because official code
 > versions drift. The WebUI (Gradio) integration steps are described but
 > **not verified in production** — this project's production environment is ComfyUI.
 

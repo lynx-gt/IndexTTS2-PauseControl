@@ -1,6 +1,6 @@
 [project]
 name = "IndexTTS2-PauseControl"
-version = "1.0.0"
+version = "1.0.1"
 description = "IndexTTS2 精确停顿控制（[pause:N]）ComfyUI 节点：停顿延长/缩短/插入，平均偏差 13ms，支持批量生成与试听验收。Precise pause control for IndexTTS2 — TTS ComfyUI nodes with waveform-domain pause editing, ±13ms accuracy."
 readme = "README.md"
 requires-python = ">=3.10"

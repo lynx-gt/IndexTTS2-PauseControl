@@ -30,7 +30,7 @@
 拒绝——改写文本或换 seed 重试）。
 
 **Q：WebUI（整合包）用户怎么用？**
-本项目生产环境是 ComfyUI，WebUI 接入方式未实际部署验证。按 `patch/修改说明.md`
+本项目生产环境是 ComfyUI，WebUI 接入方式未实际部署验证。按 `patch/PATCH_GUIDE.md`
 打补丁后（覆盖 `infer_v2.py`/`front.py`/`pause_control.py`），在 webui.py 的
 生成函数里给 `infer()` 加一行 `pause_mode=True`；如需界面固定 seed（可复现），
 见 [WEBUI_SEED_GUIDE.md](WEBUI_SEED_GUIDE.md) 教程：
