@@ -37,7 +37,9 @@ No model changes, no retraining — install the nodes and use them.
 
 ### Option 1: Full package (recommended)
 
-1. Put this repository directory into ComfyUI's `custom_nodes/`
+1. **Install via ComfyUI-Manager**: the node is published on the official
+   Comfy Registry — search `IndexTTS2-PauseControl` in Manager and install;
+   or manually: put this repository directory into ComfyUI's `custom_nodes/`
    (keep the directory name `IndexTTS2-PauseControl`; back up any existing
    same-name directory first — it will be overwritten)
 2. Install dependencies into ComfyUI's Python environment (see `requirements.txt`)
