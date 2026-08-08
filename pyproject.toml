@@ -4,7 +4,12 @@ version = "1.0.0"
 description = "IndexTTS2 精确停顿控制（[pause:N]）ComfyUI 节点：停顿延长/缩短/插入，平均偏差 13ms，支持批量生成与试听验收。Precise pause control for IndexTTS2 — TTS ComfyUI nodes with waveform-domain pause editing, ±13ms accuracy."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT (original parts); bilibili Model Use License (indextts/ inference code, see LICENSE.bilibili.txt)" }
+license = { file = "LICENSE" }
+dependencies = [
+    "json5",
+    "munch",
+    "soundfile",
+]
 authors = [
     { name = "IndexTTS2-PauseControl contributors" },
 ]
@@ -14,6 +19,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+    "Environment :: GPU :: NVIDIA CUDA",
 ]
 
 [project.urls]
@@ -21,3 +28,7 @@ Repository = "https://github.com/lynx-gt/IndexTTS2-PauseControl"
 
 [tool.setuptools.packages.find]
 include = ["indextts*", "lib*"]
+
+[tool.comfy]
+PublisherId = "lynx325799"
+DisplayName = "IndexTTS2-PauseControl"
