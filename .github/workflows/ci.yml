@@ -42,7 +42,7 @@ jobs:
           diff -q patch/modified/infer_v2.py indextts/infer_v2.py
           diff -q patch/modified/transformers_generation_utils.py indextts/gpt/transformers_generation_utils.py
           diff -q patch/modified/transformers_gpt2.py indextts/gpt/transformers_gpt2.py
-          diff -q "patch/新增文件/pause_control.py" indextts/utils/pause_control.py
+          diff -q "patch/new_files/pause_control.py" indextts/utils/pause_control.py
           echo "patch in sync with main tree"
 
       - name: Unit tests (no GPU)
