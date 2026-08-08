@@ -48,12 +48,6 @@ No model changes, no retraining — install the nodes and use them.
    [index-tts/index-tts](https://github.com/index-tts/index-tts))
 5. Restart ComfyUI
 
-> Also installable via **ComfyUI-Manager** (a third-party node manager,
-> preinstalled in most integrated packs): use "Install Custom Node →
-> Install via Git URL" and paste this repository's URL. (Not yet submitted
-> to the Manager registry, so search install is unavailable; contributions
-> to submit it are welcome.)
->
 > ⚠️ Run as a **directory** (under `custom_nodes/`). **Do NOT `pip install .`** — this
 > project shares the package name `indextts` with the official package; pip
 > installation would overwrite the official inference code.
