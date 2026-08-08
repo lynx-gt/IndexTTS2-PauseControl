@@ -49,6 +49,8 @@ No model changes, no retraining — install the nodes and use them.
 5. Restart ComfyUI
 
 > Also installable via **ComfyUI-Manager** (search `IndexTTS2-PauseControl`).
+> (ComfyUI-Manager is a third-party node manager, preinstalled in most
+> integrated packs — not an official ComfyUI component.)
 >
 > ⚠️ Run as a **directory** (under `custom_nodes/`). **Do NOT `pip install .`** — this
 > project shares the package name `indextts` with the official package; pip
